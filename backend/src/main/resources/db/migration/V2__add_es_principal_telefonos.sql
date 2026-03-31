@@ -1,0 +1,1 @@
+ALTER TABLE telefonos ADD COLUMN IF NOT EXISTS es_principal BOOLEAN DEFAULT false;

@@ -1,0 +1,38 @@
+# Root-level ignore rules
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+.agents/
+
+# Logs
+*.log
+debug-*.log
+build_log.txt
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.jks
+
+# Backend
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/src/main/resources/application-dev.properties
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+
+# Misc
+*.tmp
+*.temp

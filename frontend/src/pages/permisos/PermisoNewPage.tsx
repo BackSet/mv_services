@@ -39,7 +39,7 @@ export default function PermisoNewPage() {
             <Button variant="ghost" size="sm" onClick={() => navigate('/permisos')} className="gap-1.5">
               <ArrowLeft className="h-3.5 w-3.5" /> Volver
             </Button>
-            <Button size="sm" onClick={() => document.getElementById('permiso-new-form')?.requestSubmit()} disabled={submitting || !nombre.trim()} className="gap-1.5">
+            <Button size="sm" onClick={() => (document.getElementById('permiso-new-form') as HTMLFormElement | null)?.requestSubmit()} disabled={submitting || !nombre.trim()} className="gap-1.5">
               <Save className="h-3.5 w-3.5" /> {submitting ? 'Guardando…' : 'Crear'}
             </Button>
           </div>

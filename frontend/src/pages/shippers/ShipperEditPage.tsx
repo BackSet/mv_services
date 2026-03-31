@@ -207,7 +207,7 @@ export default function ShipperEditPage() {
             <Button variant="ghost" size="sm" onClick={() => navigate(`/shippers/${id}`)} className="gap-1.5">
               <ArrowLeft className="h-3.5 w-3.5" /> Volver
             </Button>
-            <Button size="sm" onClick={() => document.getElementById('shipper-edit-form')?.requestSubmit()} disabled={submitting} className="gap-1.5">
+            <Button size="sm" onClick={() => (document.getElementById('shipper-edit-form') as HTMLFormElement | null)?.requestSubmit()} disabled={submitting} className="gap-1.5">
               <Save className="h-3.5 w-3.5" /> {submitting ? 'Guardando…' : 'Guardar datos'}
             </Button>
           </div>

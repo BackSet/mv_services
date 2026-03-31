@@ -97,7 +97,7 @@ export default function PaqueteEditPage() {
             <Button variant="ghost" size="sm" onClick={() => navigate(`/paquetes/${id}`)} className="gap-1.5">
               <ArrowLeft className="h-3.5 w-3.5" /> Volver
             </Button>
-            <Button size="sm" onClick={() => document.getElementById('paquete-edit-form')?.requestSubmit()} disabled={submitting} className="gap-1.5">
+            <Button size="sm" onClick={() => (document.getElementById('paquete-edit-form') as HTMLFormElement | null)?.requestSubmit()} disabled={submitting} className="gap-1.5">
               <Save className="h-3.5 w-3.5" /> {submitting ? 'Guardando…' : 'Guardar'}
             </Button>
           </div>

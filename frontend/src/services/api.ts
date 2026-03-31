@@ -1,7 +1,13 @@
 import axios, { AxiosHeaders } from 'axios';
 
+const apiBaseUrl = import.meta.env.VITE_API_URL;
+
+if (!apiBaseUrl) {
+    throw new Error('Missing required env var: VITE_API_URL');
+}
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8081/api',
+    baseURL: apiBaseUrl,
     headers: {
         'Content-Type': 'application/json',
     },

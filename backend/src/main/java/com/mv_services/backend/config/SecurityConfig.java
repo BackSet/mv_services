@@ -1,6 +1,7 @@
 package com.mv_services.backend.config;
 
 import com.mv_services.backend.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -10,17 +11,17 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -30,10 +31,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final String corsAllowedOrigins;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, UserDetailsService userDetailsService) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthFilter,
+            UserDetailsService userDetailsService,
+            @Value("${CORS_ALLOWED_ORIGINS:http://localhost:5173}") String corsAllowedOrigins
+    ) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
+        this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
     @Bean
@@ -73,20 +80,21 @@ public class SecurityConfig {
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, accessDeniedException) -> {
-            var auth = SecurityContextHolder.getContext().getAuthentication();
-            String user = auth != null ? auth.getName() : "null";
-            String authorities = auth != null ? auth.getAuthorities().toString() : "[]";
-            response.setStatus(403);
-        };
+        return (request, response, accessDeniedException) -> response.setStatus(403);
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        List<String> allowedOrigins = Arrays.stream(corsAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

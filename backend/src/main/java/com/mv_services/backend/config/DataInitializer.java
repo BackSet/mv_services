@@ -141,14 +141,6 @@ public class DataInitializer {
                 System.out.println("Usuario OPERARIO creado: operario / operario123");
             }
 
-            // Reset controlado de password para usuario shipper "carlos"
-            usuarioRepository.findByUsername("carlos").ifPresent(carlos -> {
-                boolean matches = passwordEncoder.matches("carlos123", carlos.getPassword());
-                if (!matches) {
-                    carlos.setPassword(passwordEncoder.encode("carlos123"));
-                    usuarioRepository.save(carlos);
-                }
-            });
         };
     }
 }

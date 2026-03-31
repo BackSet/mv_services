@@ -156,11 +156,6 @@ function DashboardOps() {
   const totalPaquetes = paquetes.length;
   const totalShippers = shippers.length;
 
-  const consolidadosAbiertos = useMemo(
-    () => consolidados.filter((c) => (c.estado || '').toUpperCase() === 'ABIERTO').length,
-    [consolidados]
-  );
-
   const paquetesSinShipper = useMemo(() => paquetes.filter((p) => !p.shipper).length, [paquetes]);
   const paquetesSinConsolidado = useMemo(() => paquetes.filter((p) => !p.consolidado).length, [paquetes]);
 

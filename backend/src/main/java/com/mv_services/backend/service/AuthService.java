@@ -10,7 +10,6 @@ import com.mv_services.backend.model.Rol;
 import com.mv_services.backend.model.ShipperSolicitud;
 import com.mv_services.backend.model.Usuario;
 import com.mv_services.backend.repository.RolRepository;
-import com.mv_services.backend.repository.ShipperRepository;
 import com.mv_services.backend.repository.ShipperSolicitudRepository;
 import com.mv_services.backend.repository.UsuarioRepository;
 import com.mv_services.backend.security.JwtUtils;
@@ -32,7 +31,6 @@ public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final ShipperRepository shipperRepository;
     private final ShipperSolicitudRepository solicitudRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;

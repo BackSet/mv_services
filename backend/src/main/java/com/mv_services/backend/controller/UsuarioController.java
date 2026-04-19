@@ -62,7 +62,7 @@ public class UsuarioController {
     public ResponseEntity<Void> deleteUsuario(@PathVariable Long id) {
         if (usuarioRepository.existsById(id)) {
             usuarioRepository.deleteById(id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
     }

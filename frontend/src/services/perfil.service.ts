@@ -1,5 +1,5 @@
 import api from './api';
-import type { Me } from '@/hooks/useMe';
+import { normalizeMe, type Me } from '@/services/auth.service';
 
 export type UpdateMeInput = {
   username: string;
@@ -33,5 +33,5 @@ export async function changeMyPassword(input: ChangePasswordInput): Promise<void
 
 export async function updateMyShipper(input: UpdateMyShipperInput): Promise<Me> {
   const res = await api.put('/auth/me/shipper', input);
-  return res.data as Me;
+  return normalizeMe(res.data);
 }

@@ -15,8 +15,6 @@ import com.mv_services.backend.repository.ShipperRepository;
 import com.mv_services.backend.repository.UsuarioRepository;
 import com.mv_services.backend.security.JwtUtils;
 import com.mv_services.backend.service.AuthService;
-import com.mv_services.backend.service.AuthService.ShipperSolicitudPendienteException;
-import com.mv_services.backend.service.AuthService.ShipperSolicitudRechazadaException;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -50,38 +47,19 @@ public class AuthController {
     private final JwtUtils jwtUtils;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/register-shipper")
-    public ResponseEntity<?> registerShipper(@RequestBody RegisterShipperRequest request) {
-        try {
-            RegisterShipperResponse resp = authService.registerShipper(request);
-            return ResponseEntity.ok(resp);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        }
+    public ResponseEntity<RegisterShipperResponse> registerShipper(@Valid @RequestBody RegisterShipperRequest request) {
+        RegisterShipperResponse resp = authService.registerShipper(request);
+        return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticate(@RequestBody LoginRequest request) {
-        try {
-            return ResponseEntity.ok(authService.login(request));
-        } catch (ShipperSolicitudPendienteException ex) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("code", "SHIPPER_SOLICITUD_PENDIENTE");
-            body.put("message", ex.getMessage());
-            return ResponseEntity.status(403).body(body);
-        } catch (ShipperSolicitudRechazadaException ex) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("code", "SHIPPER_SOLICITUD_RECHAZADA");
-            body.put("message", ex.getMessage());
-            if (ex.getMotivo() != null) body.put("motivo", ex.getMotivo());
-            return ResponseEntity.status(403).body(body);
-        } catch (AuthenticationException ex) {
-            return ResponseEntity.status(401).body(Map.of("message", "Usuario o contraseña inválidos."));
-        }
+    public ResponseEntity<AuthResponse> authenticate(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @GetMapping("/me")

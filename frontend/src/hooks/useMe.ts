@@ -1,14 +1,5 @@
 import { useEffect, useState } from 'react';
-import api from '@/services/api';
-
-export type Me = {
-  username: string;
-  email?: string | null;
-  rol: string | null;
-  permisos: string[];
-  shipperId: number | null;
-  shipperNombre?: string | null;
-};
+import { getMe, type Me } from '@/services/auth.service';
 
 let cachedMe: Me | null = null;
 let inflight: Promise<Me> | null = null;
@@ -16,9 +7,7 @@ let inflight: Promise<Me> | null = null;
 async function fetchMe(): Promise<Me> {
   if (cachedMe) return cachedMe;
   if (inflight) return inflight;
-  inflight = api
-    .get('/auth/me')
-    .then((res) => res.data as Me)
+  inflight = getMe()
     .then((me) => {
       cachedMe = me;
       return me;
@@ -58,8 +47,6 @@ export function useMe() {
     meListeners.add(onUpdate);
 
     if (cachedMe) {
-      setMe(cachedMe);
-      setLoading(false);
       return () => {
         meListeners.delete(onUpdate);
       };

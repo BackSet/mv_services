@@ -15,13 +15,11 @@ const sizeMap: Record<BrandSize, { text: string; dot: string; gap: string }> = {
 export function Brand({
   size = "md",
   className,
-  href: _href,
   showSubtitle = false,
   subtitle = "Sistema de Gestión",
 }: {
   size?: BrandSize;
   className?: string;
-  href?: string;
   showSubtitle?: boolean;
   subtitle?: string;
 }) {

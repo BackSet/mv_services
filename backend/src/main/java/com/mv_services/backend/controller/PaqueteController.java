@@ -5,6 +5,7 @@ import com.mv_services.backend.model.Paquete;
 import com.mv_services.backend.repository.PaqueteRepository;
 import com.mv_services.backend.repository.ShipperRepository;
 import com.mv_services.backend.security.CurrentUserService;
+import com.mv_services.backend.service.ConsolidadoOpsService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,15 +23,18 @@ public class PaqueteController {
     private final PaqueteRepository paqueteRepository;
     private final CurrentUserService currentUserService;
     private final ShipperRepository shipperRepository;
+    private final ConsolidadoOpsService consolidadoOpsService;
 
     public PaqueteController(
             PaqueteRepository paqueteRepository,
             CurrentUserService currentUserService,
-            ShipperRepository shipperRepository
+            ShipperRepository shipperRepository,
+            ConsolidadoOpsService consolidadoOpsService
     ) {
         this.paqueteRepository = paqueteRepository;
         this.currentUserService = currentUserService;
         this.shipperRepository = shipperRepository;
+        this.consolidadoOpsService = consolidadoOpsService;
     }
 
     @GetMapping
@@ -189,32 +193,14 @@ public class PaqueteController {
             if (opt.isEmpty()) return ResponseEntity.notFound().build();
             Long consolidadoId = opt.get().getConsolidado() != null ? opt.get().getConsolidado().getId() : null;
             paqueteRepository.deleteById(opt.get().getId());
-            if (consolidadoId != null) reordenarPosicionesConsolidado(consolidadoId);
-            return ResponseEntity.ok().build();
+            if (consolidadoId != null) consolidadoOpsService.reordenarPosiciones(consolidadoId);
+            return ResponseEntity.noContent().build();
         }
         var existing = paqueteRepository.findById(id);
         if (existing.isEmpty()) return ResponseEntity.notFound().build();
         Long consolidadoId = existing.get().getConsolidado() != null ? existing.get().getConsolidado().getId() : null;
         paqueteRepository.deleteById(id);
-        if (consolidadoId != null) reordenarPosicionesConsolidado(consolidadoId);
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * Reordena posiciones de los paquetes restantes en un consolidado tras
-     * eliminar/desvincular uno, manteniendo el orden actual sin huecos.
-     */
-    private void reordenarPosicionesConsolidado(Long consolidadoId) {
-        List<Paquete> paquetes =
-                paqueteRepository.findByConsolidadoIdOrderByPosicionEnConsolidadoAscIdAsc(consolidadoId);
-        int pos = 1;
-        for (Paquete p : paquetes) {
-            Integer current = p.getPosicionEnConsolidado();
-            if (current == null || current != pos) {
-                p.setPosicionEnConsolidado(pos);
-                paqueteRepository.save(p);
-            }
-            pos++;
-        }
+        if (consolidadoId != null) consolidadoOpsService.reordenarPosiciones(consolidadoId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import api from "@/services/api"
-import { AxiosError } from "axios"
+import { getApiErrorPayload, login } from "@/services/auth.service"
 import {
   AlertCircle,
   ArrowLeft,
@@ -22,12 +21,6 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Brand } from "@/components/brand"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-
-type ApiErrorPayload = {
-  message?: string
-  code?: string
-  motivo?: string
-}
 
 type SolicitudInfo =
   | { kind: 'PENDIENTE'; message: string }
@@ -87,12 +80,12 @@ export default function Login() {
     setLoading(true)
 
     try {
-      const response = await api.post("/auth/login", {
+      const response = await login({
         username: normalizedUsername,
         password,
       })
 
-      const { token } = response.data
+      const { token } = response
       if (token) {
         localStorage.setItem("token", token)
         if (remember) {
@@ -107,9 +100,8 @@ export default function Login() {
       }
     } catch (err) {
       console.error("Login error:", err)
-      const axiosErr = err as AxiosError<ApiErrorPayload>
-      const status = axiosErr.response?.status
-      const data = axiosErr.response?.data
+      const data = getApiErrorPayload(err)
+      const status = (err as { response?: { status?: number } })?.response?.status ?? data?.status
       const code = data?.code
 
       if (code === 'SHIPPER_SOLICITUD_PENDIENTE') {
@@ -127,7 +119,7 @@ export default function Login() {
         let message = data?.message
         if (!message) {
           if (status === 401 || status === 403) message = "Usuario o contraseña incorrectos."
-          else if (!axiosErr.response) message = "No se pudo conectar con el servidor."
+          else if (!data) message = "No se pudo conectar con el servidor."
           else message = "Error al iniciar sesión."
         }
         setError(message)

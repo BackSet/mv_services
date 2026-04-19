@@ -52,10 +52,22 @@ export function ShipperCombobox({
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [triggerWidth, setTriggerWidth] = useState<number | undefined>(undefined);
+  const [lastOpen, setLastOpen] = useState(open);
+  const [lastSearch, setLastSearch] = useState(search);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  if (open !== lastOpen) {
+    setLastOpen(open);
+    setActiveIndex(0);
+    if (!open) setSearch('');
+  }
+  if (search !== lastSearch) {
+    setLastSearch(search);
+    setActiveIndex(0);
+  }
 
   const selectedShipper = useMemo(
     () => (value !== '' ? shippers.find((s) => s.id === value) ?? null : null),
@@ -81,21 +93,12 @@ export function ShipperCombobox({
     return () => window.removeEventListener('resize', update);
   }, [open]);
 
-  // Reset al abrir/cerrar
+  // Foco al input cuando abre (efecto secundario sobre DOM, no estado React).
   useEffect(() => {
-    if (open) {
-      setActiveIndex(0);
-      // Pequeño delay para garantizar que el input ya está montado
-      const t = window.setTimeout(() => inputRef.current?.focus(), 0);
-      return () => window.clearTimeout(t);
-    } else {
-      setSearch('');
-    }
+    if (!open) return;
+    const t = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(t);
   }, [open]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [search]);
 
   // Auto-scroll del item activo
   useEffect(() => {

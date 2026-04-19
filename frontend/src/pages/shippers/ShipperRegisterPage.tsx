@@ -3,8 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AxiosError } from "axios";
-import api from "@/services/api";
+import { extractApiMessage, registerShipper } from "@/services/auth.service";
 import {
   AlertCircle,
   ArrowLeft,
@@ -23,10 +22,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Brand } from "@/components/brand";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-type ApiErrorPayload = {
-  message?: string;
-};
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]{3,32}$/;
@@ -145,7 +140,7 @@ export default function ShipperRegisterPage() {
     setGlobalError("");
     setLoading(true);
     try {
-      await api.post("/auth/register-shipper", {
+      await registerShipper({
         username: username.trim(),
         email: email.trim().toLowerCase(),
         password,
@@ -161,12 +156,7 @@ export default function ShipperRegisterPage() {
       setSuccess({ username: username.trim(), email: email.trim().toLowerCase() });
     } catch (err) {
       console.error("Register shipper error:", err);
-      const axiosErr = err as AxiosError<ApiErrorPayload | string>;
-      const message =
-        typeof axiosErr.response?.data === "string"
-          ? axiosErr.response.data
-          : axiosErr.response?.data?.message;
-      setGlobalError(message || "Error en el registro. Verifica los datos e intenta de nuevo.");
+      setGlobalError(extractApiMessage(err, "Error en el registro. Verifica los datos e intenta de nuevo."));
     } finally {
       setLoading(false);
     }

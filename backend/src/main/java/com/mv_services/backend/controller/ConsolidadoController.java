@@ -7,6 +7,7 @@ import com.mv_services.backend.model.Usuario;
 import com.mv_services.backend.repository.ConsolidadoRepository;
 import com.mv_services.backend.repository.PaqueteRepository;
 import com.mv_services.backend.security.CurrentUserService;
+import com.mv_services.backend.service.ConsolidadoOpsService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,15 +22,18 @@ public class ConsolidadoController {
     private final ConsolidadoRepository consolidadoRepository;
     private final PaqueteRepository paqueteRepository;
     private final CurrentUserService currentUserService;
+    private final ConsolidadoOpsService consolidadoOpsService;
 
     public ConsolidadoController(
             ConsolidadoRepository consolidadoRepository,
             PaqueteRepository paqueteRepository,
-            CurrentUserService currentUserService
+            CurrentUserService currentUserService,
+            ConsolidadoOpsService consolidadoOpsService
     ) {
         this.consolidadoRepository = consolidadoRepository;
         this.paqueteRepository = paqueteRepository;
         this.currentUserService = currentUserService;
+        this.consolidadoOpsService = consolidadoOpsService;
     }
 
     @GetMapping
@@ -90,47 +94,15 @@ public class ConsolidadoController {
     @PostMapping("/{id}/paquetes/{paqueteId}")
     @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN') or hasAuthority('consolidados.add_paquete')")
     public ResponseEntity<Consolidado> addPaquete(@PathVariable Long id, @PathVariable Long paqueteId) {
-        Consolidado consolidado = consolidadoRepository.findById(id).orElse(null);
-        if (consolidado == null) return ResponseEntity.notFound().build();
-
-        Paquete paquete = paqueteRepository.findById(paqueteId).orElse(null);
-        if (paquete == null) return ResponseEntity.notFound().build();
-
-        if (paquete.getConsolidado() != null && paquete.getConsolidado().getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        paquete.setConsolidado(consolidado);
-        // Asigna la siguiente posición disponible al final de la lista.
-        int nextPos = paqueteRepository.findByConsolidadoId(id).size() + 1;
-        paquete.setPosicionEnConsolidado(nextPos);
-        paqueteRepository.save(paquete);
-
-        reordenarPosiciones(id);
-        recalcularTotales(consolidado);
-        return ResponseEntity.ok(consolidadoRepository.save(consolidado));
+        Consolidado consolidado = consolidadoOpsService.addPaquete(id, paqueteId);
+        return ResponseEntity.ok(consolidado);
     }
 
     @DeleteMapping("/{id}/paquetes/{paqueteId}")
     @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN') or hasAuthority('consolidados.add_paquete')")
     public ResponseEntity<Consolidado> removePaquete(@PathVariable Long id, @PathVariable Long paqueteId) {
-        Consolidado consolidado = consolidadoRepository.findById(id).orElse(null);
-        if (consolidado == null) return ResponseEntity.notFound().build();
-
-        Paquete paquete = paqueteRepository.findById(paqueteId).orElse(null);
-        if (paquete == null) return ResponseEntity.notFound().build();
-
-        if (paquete.getConsolidado() == null || !paquete.getConsolidado().getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        paquete.setConsolidado(null);
-        paquete.setPosicionEnConsolidado(null);
-        paqueteRepository.save(paquete);
-
-        reordenarPosiciones(id);
-        recalcularTotales(consolidado);
-        return ResponseEntity.ok(consolidadoRepository.save(consolidado));
+        Consolidado consolidado = consolidadoOpsService.removePaquete(id, paqueteId);
+        return ResponseEntity.ok(consolidado);
     }
 
     @PutMapping("/{id}")
@@ -141,7 +113,7 @@ public class ConsolidadoController {
                     if (details.getNumeroGuia() != null) {
                         c.setNumeroGuia(details.getNumeroGuia());
                     }
-                    recalcularTotales(c);
+                    consolidadoOpsService.recalcularTotales(c);
                     return ResponseEntity.ok(consolidadoRepository.save(c));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -153,7 +125,7 @@ public class ConsolidadoController {
         return consolidadoRepository.findById(id)
                 .map(c -> {
                     c.setEstado(ConsolidadoEstado.ABIERTO);
-                    recalcularTotales(c);
+                    consolidadoOpsService.recalcularTotales(c);
                     return ResponseEntity.ok(consolidadoRepository.save(c));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -168,7 +140,7 @@ public class ConsolidadoController {
                         c.setNumeroGuia(details.getNumeroGuia());
                     }
                     c.setEstado(ConsolidadoEstado.CERRADO);
-                    recalcularTotales(c);
+                    consolidadoOpsService.recalcularTotales(c);
                     return ResponseEntity.ok(consolidadoRepository.save(c));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -192,35 +164,4 @@ public class ConsolidadoController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Recalcula la suma de pesos del consolidado a partir de las libras
-     * de cada paquete. El total en kgs se deriva en la entidad.
-     */
-    private void recalcularTotales(Consolidado consolidado) {
-        List<Paquete> paquetes = paqueteRepository.findByConsolidadoId(consolidado.getId());
-        double lbs = 0d;
-        for (Paquete p : paquetes) {
-            if (p.getPesoLbs() != null) lbs += p.getPesoLbs();
-        }
-        consolidado.setPesoTotalLbs(lbs);
-    }
-
-    /**
-     * Recompacta las posiciones de los paquetes de un consolidado en orden ascendente,
-     * eliminando huecos producidos al quitar elementos. Conserva el orden actual
-     * (por posición previa o por id como fallback).
-     */
-    private void reordenarPosiciones(Long consolidadoId) {
-        List<Paquete> paquetes =
-                paqueteRepository.findByConsolidadoIdOrderByPosicionEnConsolidadoAscIdAsc(consolidadoId);
-        int pos = 1;
-        for (Paquete p : paquetes) {
-            Integer current = p.getPosicionEnConsolidado();
-            if (current == null || current != pos) {
-                p.setPosicionEnConsolidado(pos);
-                paqueteRepository.save(p);
-            }
-            pos++;
-        }
-    }
 }

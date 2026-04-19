@@ -11,6 +11,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
+import { PageContent } from '@/components/layout/PageContent';
 import { LoadingState } from '@/components/states/LoadingState';
 import { ErrorState } from '@/components/states/ErrorState';
 import NotionTable from '@/components/notion/NotionTable';
@@ -559,7 +560,7 @@ export default function ConsolidadoViewPage() {
         ) : !row ? (
           <div className="py-8"><ErrorState title="No se encontró el consolidado" /></div>
         ) : (
-          <div className="space-y-5 py-4">
+          <PageContent spacing="4">
             {/* --- Banner de estado contextual --- */}
             <div
               className={
@@ -1055,7 +1056,7 @@ export default function ConsolidadoViewPage() {
                 <span className="inline-flex items-center gap-1"><Kbd>/</Kbd> agregar paquete</span>
               )}
             </div>
-          </div>
+          </PageContent>
         )}
 
         {/* --- Dialog Completar / editar información --- */}

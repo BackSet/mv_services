@@ -17,6 +17,11 @@ import { usePaquetesList } from '@/hooks/usePaquetes';
 import { useShippersList } from '@/hooks/useShippers';
 import { useConsolidadosList } from '@/hooks/useConsolidados';
 import { cn } from '@/lib/utils';
+import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
+import { Button } from '@/components/ui/button';
+import { PageContent } from '@/components/layout/PageContent';
+
+const PANEL_CLASS = 'rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-5';
 
 function StatCard({
   icon: Icon,
@@ -34,10 +39,10 @@ function StatCard({
   return (
     <div
       className={cn(
-        'rounded-xl border bg-card p-5 flex flex-col gap-3 transition-colors',
+        'rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-4 flex flex-col gap-3 transition-colors',
         highlight
-          ? 'border-orange-400/60 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-500/40'
-          : 'border-border'
+          ? 'border-orange-400/60 bg-orange-50/40 dark:bg-orange-950/20 dark:border-orange-500/40'
+          : ''
       )}
     >
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -69,8 +74,8 @@ function SectionHeader({
       <div className="flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4 text-muted-foreground" />}
         <div>
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
+          <h3 className="text-sm font-semibold text-foreground tracking-tight">{title}</h3>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
       </div>
       {linkLabel && onLink && (
@@ -185,28 +190,27 @@ function DashboardOps() {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-              <LayoutDashboard className="w-4 h-4" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Resumen de operaciones en tiempo real</p>
-            </div>
-          </div>
-
+      <StandardPageLayout
+        title="Dashboard"
+        subtitle="Resumen de operaciones en tiempo real"
+        icon={<LayoutDashboard className="w-4 h-4" />}
+        actions={
+          <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate('/paquetes/new')}>
+            <PlusCircle className="h-3.5 w-3.5" />
+            Nuevo paquete
+          </Button>
+        }
+      >
+        <PageContent>
           {/* Stat Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} />
             <StatCard icon={AlertCircle} label="Atenciones Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} highlight />
             <StatCard icon={Truck} label="Consolidados Abiertos" value={consolidadosAbiertos} loading={loadingConsolidados} />
             <StatCard icon={Boxes} label="Shippers" value={totalShippers} loading={loadingShippers} />
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className={PANEL_CLASS}>
             <SectionHeader title="Acciones rápidas" subtitle="Flujos frecuentes para el equipo operativo" />
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
@@ -239,7 +243,7 @@ function DashboardOps() {
           {/* Three columns */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Column 1: Pipeline de Paquetes */}
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className={PANEL_CLASS}>
               <SectionHeader
                 icon={Package}
                 title="Pipeline de Paquetes"
@@ -279,7 +283,7 @@ function DashboardOps() {
             </div>
 
             {/* Column 2: Atenciones Pendientes */}
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className={PANEL_CLASS}>
               <SectionHeader
                 icon={AlertCircle}
                 title="Atenciones Pendientes"
@@ -318,7 +322,7 @@ function DashboardOps() {
 
             {/* Column 3: Consolidados Recientes + Paquetes Recientes */}
             <div className="space-y-6">
-              <div className="rounded-xl border border-border bg-card p-5">
+              <div className={PANEL_CLASS}>
                 <SectionHeader
                   icon={Truck}
                   title="Consolidados Recientes"
@@ -343,7 +347,7 @@ function DashboardOps() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-5">
+              <div className={PANEL_CLASS}>
                 <SectionHeader
                   icon={Package}
                   title="Paquetes Recientes"
@@ -369,8 +373,8 @@ function DashboardOps() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </PageContent>
+      </StandardPageLayout>
     </DashboardLayout>
   );
 }
@@ -397,25 +401,25 @@ function DashboardShipper() {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
-              <LayoutDashboard className="w-4 h-4" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Resumen de tu operación</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <StandardPageLayout
+        title="Dashboard"
+        subtitle="Resumen de tu operación"
+        icon={<LayoutDashboard className="w-4 h-4" />}
+        actions={
+          <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate('/paquetes/new')}>
+            <PlusCircle className="h-3.5 w-3.5" />
+            Registrar paquete
+          </Button>
+        }
+      >
+        <PageContent>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} />
             <StatCard icon={AlertCircle} label="Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} highlight />
             <StatCard icon={Boxes} label="Sin Consolidado" value={paquetesSinConsolidado} loading={loadingPaquetes} />
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className={PANEL_CLASS}>
             <SectionHeader title="Acciones rápidas" subtitle="Accede a tareas frecuentes de shipper" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
@@ -438,7 +442,7 @@ function DashboardShipper() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className={PANEL_CLASS}>
               <SectionHeader
                 icon={AlertCircle}
                 title="Atenciones Pendientes"
@@ -475,7 +479,7 @@ function DashboardShipper() {
               )}
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className={PANEL_CLASS}>
               <SectionHeader
                 icon={Package}
                 title="Paquetes Recientes"
@@ -500,8 +504,8 @@ function DashboardShipper() {
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </PageContent>
+      </StandardPageLayout>
     </DashboardLayout>
   );
 }

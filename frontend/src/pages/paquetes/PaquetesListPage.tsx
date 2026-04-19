@@ -33,6 +33,7 @@ import { exportPaquetesPdf } from '@/lib/exportPaquetesPdf';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
+import { PageContent } from '@/components/layout/PageContent';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const STORAGE_KEY = 'paquetes:list:prefs:v1';
@@ -684,7 +685,7 @@ export default function PaquetesListPage() {
           }}
         />
 
-        <div className="space-y-4 py-4">
+        <PageContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard
               icon={<Package className="h-4 w-4" />}
@@ -1115,7 +1116,7 @@ export default function PaquetesListPage() {
               </div>
             </>
           )}
-        </div>
+        </PageContent>
       </StandardPageLayout>
     </DashboardLayout>
   );

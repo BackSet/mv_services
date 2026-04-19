@@ -9,6 +9,7 @@ import com.mv_services.backend.repository.TelefonoRepository;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,13 +34,7 @@ public class ShipperController {
 
     @GetMapping
     public List<Shipper> getAll() {
-        List<Shipper> shippers = shipperRepository.findAll();
-        // Cargar colecciones (para respuestas completas con repositorios simples)
-        for (Shipper shipper : shippers) {
-            shipper.setTelefonos(telefonoRepository.findByShipperId(shipper.getId()));
-            shipper.setDirecciones(direccionShipperRepository.findByShipperId(shipper.getId()));
-        }
-        return shippers;
+        return shipperRepository.findAll();
     }
 
     @PostMapping
@@ -53,11 +48,7 @@ public class ShipperController {
     @GetMapping("/{id}")
     public ResponseEntity<Shipper> getById(@PathVariable Long id) {
         return shipperRepository.findById(id)
-                .map(shipper -> {
-                    shipper.setTelefonos(telefonoRepository.findByShipperId(shipper.getId()));
-                    shipper.setDirecciones(direccionShipperRepository.findByShipperId(shipper.getId()));
-                    return ResponseEntity.ok(shipper);
-                })
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -69,25 +60,19 @@ public class ShipperController {
                     if (details.getNombre() != null) shipper.setNombre(details.getNombre());
                     if (details.getCodigoInterno() != null) shipper.setCodigoInterno(details.getCodigoInterno());
                     if (details.getNombreEncargado() != null) shipper.setNombreEncargado(details.getNombreEncargado());
-                    Shipper saved = shipperRepository.save(shipper);
-                    saved.setTelefonos(telefonoRepository.findByShipperId(saved.getId()));
-                    saved.setDirecciones(direccionShipperRepository.findByShipperId(saved.getId()));
-                    return ResponseEntity.ok(saved);
+                    return ResponseEntity.ok(shipperRepository.save(shipper));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/telefonos")
     @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @Transactional
     public ResponseEntity<Telefono> addTelefono(@PathVariable Long id, @RequestBody Telefono telefono) {
         return shipperRepository.findById(id)
                 .map(shipper -> {
                     if (Boolean.TRUE.equals(telefono.getEsPrincipal())) {
-                        List<Telefono> existentes = telefonoRepository.findByShipperId(shipper.getId());
-                        for (Telefono t : existentes) {
-                            t.setEsPrincipal(false);
-                            telefonoRepository.save(t);
-                        }
+                        telefonoRepository.clearPrincipalByShipperId(shipper.getId());
                     }
                     Telefono nuevo = new Telefono();
                     nuevo.setNumero(telefono.getNumero());
@@ -137,6 +122,7 @@ public class ShipperController {
 
     @PutMapping("/{id}/telefonos/{telefonoId}")
     @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @Transactional
     public ResponseEntity<Telefono> updateTelefono(
             @PathVariable Long id,
             @PathVariable Long telefonoId,
@@ -147,13 +133,7 @@ public class ShipperController {
                     if (telefono.getNumero() != null) existente.setNumero(telefono.getNumero());
                     if (telefono.getEtiqueta() != null) existente.setEtiqueta(telefono.getEtiqueta());
                     if (Boolean.TRUE.equals(telefono.getEsPrincipal())) {
-                        List<Telefono> todos = telefonoRepository.findByShipperId(id);
-                        for (Telefono t : todos) {
-                            if (!t.getId().equals(telefonoId)) {
-                                t.setEsPrincipal(false);
-                                telefonoRepository.save(t);
-                            }
-                        }
+                        telefonoRepository.clearPrincipalByShipperIdExcludingTelefonoId(id, telefonoId);
                         existente.setEsPrincipal(true);
                     } else if (telefono.getEsPrincipal() != null) {
                         existente.setEsPrincipal(false);
@@ -169,7 +149,7 @@ public class ShipperController {
         return telefonoRepository.findByIdAndShipperId(telefonoId, id)
                 .map(t -> {
                     telefonoRepository.delete(t);
-                    return ResponseEntity.ok().<Void>build();
+                    return ResponseEntity.noContent().<Void>build();
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -180,7 +160,7 @@ public class ShipperController {
         return direccionShipperRepository.findByIdAndShipperId(direccionId, id)
                 .map(d -> {
                     direccionShipperRepository.delete(d);
-                    return ResponseEntity.ok().<Void>build();
+                    return ResponseEntity.noContent().<Void>build();
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -190,7 +170,7 @@ public class ShipperController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (shipperRepository.existsById(id)) {
             shipperRepository.deleteById(id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
     }

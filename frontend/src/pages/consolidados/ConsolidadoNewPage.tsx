@@ -37,6 +37,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
+import { PageContent } from '@/components/layout/PageContent';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -621,7 +622,7 @@ export default function ConsolidadoNewPage() {
           </div>
         }
       >
-        <div className="space-y-4 pb-28">
+        <PageContent className="pb-28">
           {/* Banner contextual */}
           <div
             className={`rounded-xl border p-4 ${
@@ -1059,7 +1060,7 @@ export default function ConsolidadoNewPage() {
             <Kbd>Ctrl</Kbd> + <Kbd>L</Kbd>
             <span>descartar borrador</span>
           </div>
-        </div>
+        </PageContent>
 
         {/* Footer sticky con CTA */}
         <div className="sticky bottom-0 left-0 right-0 -mx-4 sm:-mx-6 lg:-mx-8 border-t border-border bg-background/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 py-3 mt-4 z-10">

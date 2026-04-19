@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState, useRef } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -24,30 +24,23 @@ export function ListToolbar({
   searchInputProps,
 }: ListToolbarProps) {
   const [localSearch, setLocalSearch] = useState(search ?? '')
+  const [lastExternalSearch, setLastExternalSearch] = useState(search)
   const debouncedSearch = useDebounce(localSearch, 300)
-  const prevDebouncedRef = useRef(debouncedSearch)
-  const isInternalChange = useRef(false)
 
-  useEffect(() => {
-    if (search === undefined || isInternalChange.current) {
-      isInternalChange.current = false
-      return
+  if (search !== lastExternalSearch) {
+    setLastExternalSearch(search)
+    if (search !== undefined && search !== localSearch) {
+      setLocalSearch(search)
     }
-    setLocalSearch(search)
-    prevDebouncedRef.current = search
-  }, [search])
+  }
 
   useEffect(() => {
-    if (prevDebouncedRef.current === debouncedSearch) return
-    prevDebouncedRef.current = debouncedSearch
-    isInternalChange.current = true
+    if (search !== undefined && debouncedSearch === search) return
     onSearchChange?.(debouncedSearch)
-  }, [debouncedSearch, onSearchChange])
+  }, [debouncedSearch, search, onSearchChange])
 
   const handleClearSearch = () => {
     setLocalSearch('')
-    prevDebouncedRef.current = ''
-    isInternalChange.current = true
     onSearchChange?.('')
   }
 

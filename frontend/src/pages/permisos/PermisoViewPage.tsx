@@ -21,6 +21,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { DetailPageLayout } from '@/components/detail/DetailPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
+import { PageContent } from '@/components/layout/PageContent';
 import { LoadingState } from '@/components/states/LoadingState';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
@@ -232,7 +233,7 @@ export default function PermisoViewPage() {
         ) : !row ? (
           <ErrorState title="No se encontró el permiso" />
         ) : (
-          <div className="space-y-6">
+          <PageContent spacing="6">
             {/* Banner principal */}
             <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-background to-background p-5">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -528,7 +529,7 @@ export default function PermisoViewPage() {
                 Lista
               </Button>
             </div>
-          </div>
+          </PageContent>
         )}
       </DetailPageLayout>
     </DashboardLayout>

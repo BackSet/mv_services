@@ -2,8 +2,10 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
-    "baseUrl": ".",
     "paths": {
+      "*": [
+        "./*"
+      ],
       "@/*": [
         "./src/*"
       ]

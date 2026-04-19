@@ -43,6 +43,8 @@ import {
 } from '@/services/shipperSolicitudes.service';
 import { useInvalidateSolicitudes } from '@/hooks/useSolicitudesPendientes';
 import { cn } from '@/lib/utils';
+import { SectionCard } from '@/components/layout/SectionCard';
+import { PageContent } from '@/components/layout/PageContent';
 
 type Tab = EstadoSolicitudShipper | 'ALL';
 
@@ -244,7 +246,7 @@ export default function SolicitudesShippersPage() {
           </div>
         }
       >
-        <div className="py-6 space-y-5">
+        <PageContent>
           {/* KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard
@@ -278,48 +280,56 @@ export default function SolicitudesShippersPage() {
           </div>
 
           {/* Tabs + búsqueda */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl border border-border/50 bg-muted/20">
-              {TABS.map((t) => {
-                const active = tab === t.id;
-                const cnt = t.id === 'ALL' ? total : counts[t.id as EstadoSolicitudShipper];
-                const Icon = t.icon;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTab(t.id)}
-                    className={cn(
-                      'inline-flex items-center gap-2 h-8 px-3 rounded-lg text-xs font-medium transition-all',
-                      active
-                        ? 'bg-background shadow-sm text-foreground border border-border/60'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {t.label}
-                    <span
+          <SectionCard
+            title="Filtros"
+            description="Filtra por estado y encuentra solicitudes por texto."
+            icon={Search}
+            iconColor="gray"
+            className="bg-card/40"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl border border-border/50 bg-muted/20">
+                {TABS.map((t) => {
+                  const active = tab === t.id;
+                  const cnt = t.id === 'ALL' ? total : counts[t.id as EstadoSolicitudShipper];
+                  const Icon = t.icon;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTab(t.id)}
                       className={cn(
-                        'inline-flex items-center justify-center min-w-[20px] h-[18px] px-1 rounded-full text-[10px] font-bold',
-                        active ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                        'inline-flex items-center gap-2 h-8 px-3 rounded-lg text-xs font-medium transition-all',
+                        active
+                          ? 'bg-background shadow-sm text-foreground border border-border/60'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
                       )}
                     >
-                      {cnt}
-                    </span>
-                  </button>
-                );
-              })}
+                      <Icon className="h-3.5 w-3.5" />
+                      {t.label}
+                      <span
+                        className={cn(
+                          'inline-flex items-center justify-center min-w-[20px] h-[18px] px-1 rounded-full text-[10px] font-bold',
+                          active ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {cnt}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por nombre, username, email…"
+                  className="h-9 pl-9 text-sm"
+                />
+              </div>
             </div>
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nombre, username, email…"
-                className="h-9 pl-9 text-sm"
-              />
-            </div>
-          </div>
+          </SectionCard>
 
           {/* Contenido */}
           {loading ? (
@@ -450,7 +460,7 @@ export default function SolicitudesShippersPage() {
               })}
             </div>
           )}
-        </div>
+        </PageContent>
 
         {/* Diálogo de rechazo */}
         <Dialog

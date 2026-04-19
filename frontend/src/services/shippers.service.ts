@@ -33,34 +33,49 @@ export type ShipperCreateInput = {
 
 export type ShipperUpdateInput = ShipperCreateInput;
 
-function normalizeTelefono(raw: any): Telefono {
+type RawRecord = Record<string, unknown>;
+
+function asRecord(raw: unknown): RawRecord {
+  return (raw && typeof raw === 'object' ? (raw as RawRecord) : {});
+}
+
+function asString(v: unknown): string | undefined {
+  return typeof v === 'string' ? v : undefined;
+}
+
+function normalizeTelefono(raw: unknown): Telefono {
+  const r = asRecord(raw);
   return {
-    id: raw?.id,
-    numero: raw?.numero ?? '',
-    etiqueta: raw?.etiqueta ?? null,
-    esPrincipal: raw?.esPrincipal ?? raw?.es_principal ?? false,
+    id: typeof r.id === 'number' ? r.id : undefined,
+    numero: asString(r.numero) ?? '',
+    etiqueta: asString(r.etiqueta) ?? null,
+    esPrincipal: Boolean(r.esPrincipal ?? r.es_principal ?? false),
   };
 }
 
-function normalizeDireccion(raw: any): DireccionShipper {
+function normalizeDireccion(raw: unknown): DireccionShipper {
+  const r = asRecord(raw);
   return {
-    id: raw?.id,
-    pais: raw?.pais ?? null,
-    ciudad: raw?.ciudad ?? null,
-    canton: raw?.canton ?? null,
-    direccion: raw?.direccion ?? null,
-    referencia: raw?.referencia ?? null,
+    id: typeof r.id === 'number' ? r.id : undefined,
+    pais: asString(r.pais) ?? null,
+    ciudad: asString(r.ciudad) ?? null,
+    canton: asString(r.canton) ?? null,
+    direccion: asString(r.direccion) ?? null,
+    referencia: asString(r.referencia) ?? null,
   };
 }
 
-function normalizeShipper(raw: any): Shipper {
+function normalizeShipper(raw: unknown): Shipper {
+  const r = asRecord(raw);
+  const telefonos = Array.isArray(r.telefonos) ? r.telefonos : [];
+  const direcciones = Array.isArray(r.direcciones) ? r.direcciones : [];
   return {
-    id: Number(raw?.id),
-    nombre: raw?.nombre ?? '',
-    codigoInterno: raw?.codigoInterno ?? raw?.codigo_interno ?? null,
-    nombreEncargado: raw?.nombreEncargado ?? raw?.nombre_encargado ?? null,
-    telefonos: Array.isArray(raw?.telefonos) ? raw.telefonos.map(normalizeTelefono) : [],
-    direcciones: Array.isArray(raw?.direcciones) ? raw.direcciones.map(normalizeDireccion) : [],
+    id: Number(r.id),
+    nombre: asString(r.nombre) ?? '',
+    codigoInterno: asString(r.codigoInterno) ?? asString(r.codigo_interno) ?? null,
+    nombreEncargado: asString(r.nombreEncargado) ?? asString(r.nombre_encargado) ?? null,
+    telefonos: telefonos.map(normalizeTelefono),
+    direcciones: direcciones.map(normalizeDireccion),
   };
 }
 

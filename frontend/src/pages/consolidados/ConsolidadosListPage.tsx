@@ -18,6 +18,7 @@ import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
+import { PageContent } from '@/components/layout/PageContent';
 import { useConsolidadosList } from '@/hooks/useConsolidados';
 import { deleteConsolidado, type Consolidado } from '@/services/consolidados.service';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
@@ -324,7 +325,7 @@ export default function ConsolidadosListPage() {
           />
         )}
 
-        <div className="space-y-4 py-4">
+        <PageContent>
           {/* KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <KpiCard
@@ -685,7 +686,7 @@ export default function ConsolidadosListPage() {
               </div>
             </>
           )}
-        </div>
+        </PageContent>
       </StandardPageLayout>
     </DashboardLayout>
   );

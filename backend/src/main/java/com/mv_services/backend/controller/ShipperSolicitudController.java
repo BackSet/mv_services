@@ -5,7 +5,6 @@ import com.mv_services.backend.model.EstadoSolicitudShipper;
 import com.mv_services.backend.model.ShipperSolicitud;
 import com.mv_services.backend.repository.ShipperSolicitudRepository;
 import com.mv_services.backend.service.ShipperSolicitudService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -64,14 +63,8 @@ public class ShipperSolicitudController {
     @PreAuthorize("hasAuthority('shippers.aprobar')")
     public ResponseEntity<?> aprobar(@PathVariable Long id, Authentication authentication) {
         String currentUsername = authentication != null ? authentication.getName() : null;
-        try {
-            ShipperSolicitud s = solicitudService.aprobar(id, currentUsername);
-            return ResponseEntity.ok(s);
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.status(404).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(409).body(Map.of("message", ex.getMessage()));
-        }
+        ShipperSolicitud s = solicitudService.aprobar(id, currentUsername);
+        return ResponseEntity.ok(s);
     }
 
     @PostMapping("/{id}/rechazar")
@@ -81,16 +74,8 @@ public class ShipperSolicitudController {
             @Valid @RequestBody RechazarSolicitudRequest body,
             Authentication authentication) {
         String currentUsername = authentication != null ? authentication.getName() : null;
-        try {
-            ShipperSolicitud s = solicitudService.rechazar(id, body.getMotivo(), currentUsername);
-            return ResponseEntity.ok(s);
-        } catch (EntityNotFoundException ex) {
-            return ResponseEntity.status(404).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(409).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        }
+        ShipperSolicitud s = solicitudService.rechazar(id, body.getMotivo(), currentUsername);
+        return ResponseEntity.ok(s);
     }
 
     private EstadoSolicitudShipper parseEstado(String value) {

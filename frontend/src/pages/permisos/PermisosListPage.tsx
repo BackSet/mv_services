@@ -20,6 +20,7 @@ import {
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
+import { PageContent } from '@/components/layout/PageContent';
 import NotionTable from '@/components/notion/NotionTable';
 import type { NotionTableAction, SortState } from '@/components/notion/NotionTable';
 import EmptyState from '@/components/notion/EmptyState';
@@ -393,7 +394,7 @@ export default function PermisosListPage() {
           }}
         />
 
-        <div className="space-y-4 py-4">
+        <PageContent>
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard
@@ -704,7 +705,7 @@ export default function PermisosListPage() {
             <Kbd>Ctrl</Kbd> + <Kbd>R</Kbd>
             <span>refrescar</span>
           </div>
-        </div>
+        </PageContent>
       </StandardPageLayout>
     </DashboardLayout>
   );

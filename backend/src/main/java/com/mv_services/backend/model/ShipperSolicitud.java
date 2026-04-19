@@ -1,5 +1,6 @@
 package com.mv_services.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -34,6 +35,7 @@ public class ShipperSolicitud {
     private String email;
 
     @Column(name = "password_hash", nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "shipper_nombre", nullable = false)

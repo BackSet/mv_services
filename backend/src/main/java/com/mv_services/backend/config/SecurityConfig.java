@@ -1,6 +1,7 @@
 package com.mv_services.backend.config;
 
 import com.mv_services.backend.security.JwtAuthenticationFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -86,7 +88,18 @@ public class SecurityConfig {
 
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
-        return (request, response, accessDeniedException) -> response.setStatus(403);
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(403);
+            response.setContentType("application/json");
+            Map<String, Object> payload = Map.of(
+                    "status", 403,
+                    "error", "Forbidden",
+                    "message", "No tienes permisos para esta operacion.",
+                    "path", request.getRequestURI(),
+                    "code", "ACCESS_DENIED"
+            );
+            response.getWriter().write(new ObjectMapper().writeValueAsString(payload));
+        };
     }
 
     @Bean

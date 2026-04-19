@@ -3,8 +3,11 @@ import {
   ArrowRight,
   Boxes,
   ChevronDown,
-  Layers,
-  Lock,
+  Clock,
+  Combine,
+  Headphones,
+  MapPin,
+  MessageCircle,
   Package,
   Route,
   ShieldCheck,
@@ -20,62 +23,114 @@ import { cn } from "@/lib/utils"
 
 const KEY_POINTS = [
   {
+    icon: Truck,
+    title: "Servicio logístico completo",
+    desc: "Nos encargamos de todo el camino de tu paquete: lo recibimos, lo procesamos con cuidado y lo entregamos en su destino final.",
+    color: "text-amber-500 bg-amber-500/10",
+  },
+  {
+    icon: MapPin,
+    title: "Tracking de tu paquete",
+    desc: "Sabes en todo momento dónde está tu paquete y en qué etapa del proceso se encuentra, desde que lo recibimos hasta que llega a su destino.",
+    color: "text-rose-500 bg-rose-500/10",
+  },
+  {
     icon: Package,
-    title: "Gestión de paquetes",
-    desc: "Registro, seguimiento y control operativo de paquetes en un solo lugar.",
+    title: "Tu paquete, en buenas manos",
+    desc: "Cada paquete se identifica, se manipula con cuidado y se controla en cada etapa para asegurar que llegue completo y en perfecto estado.",
     color: "text-blue-500 bg-blue-500/10",
   },
   {
-    icon: Layers,
-    title: "Consolidados",
-    desc: "Agrupación de envíos con flujo claro para operarios y control de estado.",
-    color: "text-emerald-500 bg-emerald-500/10",
+    icon: MessageCircle,
+    title: "Te avisamos en cada etapa",
+    desc: "Recibes notificaciones cuando tu paquete es despachado y cuando va camino al destino, sin tener que preguntar.",
+    color: "text-green-500 bg-green-500/10",
+  },
+  {
+    icon: Route,
+    title: "Cobertura amplia",
+    desc: "Llegamos a múltiples destinos a través de nuestra red de agencias y distribuidores, sin que tú tengas que coordinar nada.",
+    color: "text-sky-500 bg-sky-500/10",
+  },
+  {
+    icon: Headphones,
+    title: "Atención cuando la necesitas",
+    desc: "Si surge una novedad con tu paquete, registramos el caso y le damos seguimiento hasta resolverlo.",
+    color: "text-fuchsia-500 bg-fuchsia-500/10",
   },
   {
     icon: Users,
-    title: "Control por roles",
-    desc: "Acceso diferenciado para administración, operario y shipper.",
-    color: "text-amber-500 bg-amber-500/10",
+    title: "Para envíos puntuales o volumen",
+    desc: "Funciona igual de bien si envías un paquete o si manejas envíos masivos como shipper, con la misma confiabilidad.",
+    color: "text-cyan-500 bg-cyan-500/10",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Confiabilidad y respaldo",
+    desc: "Cada paquete queda registrado y respaldado en la plataforma, con un historial completo de su recorrido y entrega.",
+    color: "text-teal-500 bg-teal-500/10",
+  },
+  {
+    icon: Clock,
+    title: "Visibilidad en tiempo real",
+    desc: "Consulta el estado de tus envíos desde cualquier dispositivo, sin esperar a que alguien te responda por teléfono.",
+    color: "text-violet-500 bg-violet-500/10",
   },
 ]
 
 const OPERATIVE_FLOW = [
   {
     step: "01",
-    title: "Registra paquetes",
-    desc: "Carga guía, datos clave y seguimiento inicial en segundos.",
+    title: "Recibimos tu paquete",
+    desc: "Registramos tu paquete en cuanto llega a nuestras manos y lo identificamos para que no se pierda en ningún punto del trayecto.",
     icon: Boxes,
   },
   {
     step: "02",
-    title: "Consolida envíos",
-    desc: "Agrupa paquetes con trazabilidad clara para operación diaria.",
-    icon: Truck,
+    title: "Lo preparamos para enviarlo",
+    desc: "Lo agrupamos con otros envíos hacia el mismo destino y lo dejamos listo para salir a ruta con todos los controles necesarios.",
+    icon: Combine,
   },
   {
     step: "03",
-    title: "Controla accesos",
-    desc: "Roles y permisos para cada tipo de usuario en el sistema.",
-    icon: Lock,
+    title: "Lo entregamos en destino",
+    desc: "Lo enviamos a través de nuestra red de agencias y distribuidores hasta la persona que lo espera, y te avisamos en el camino.",
+    icon: Truck,
   },
 ]
 
 const FAQS = [
   {
-    q: "¿Quién puede registrarse en la plataforma?",
-    a: "Cualquier shipper puede solicitar una cuenta. Los usuarios internos (administradores y operarios) son creados por el equipo de MV Services.",
+    q: "¿Qué hace MV Services por mí?",
+    a: "Nos encargamos de todo el camino de tu paquete: lo recibimos, lo organizamos, lo enviamos al destino y te mantenemos informado durante el proceso. Tú solo te ocupas de entregárnoslo o coordinar la recogida.",
   },
   {
-    q: "¿Necesito instalar algo?",
-    a: "No. La plataforma funciona desde cualquier navegador moderno (Chrome, Edge, Firefox, Safari) y se adapta a móviles y tablets.",
+    q: "¿Puedo saber dónde está mi paquete?",
+    a: "Sí. En cualquier momento puedes consultar el estado de tu paquete y ver en qué etapa del recorrido se encuentra, desde que lo recibimos hasta que llega a su destino final.",
   },
   {
-    q: "¿Cómo se protegen mis datos?",
-    a: "Usamos autenticación con tokens JWT, control por roles y permisos, y conexión segura HTTPS en producción.",
+    q: "¿Cómo me avisan cuando mi paquete sale o llega?",
+    a: "Te enviamos notificaciones automáticas por WhatsApp en los momentos clave del recorrido, para que sepas que tu paquete ya fue despachado y va camino al destino.",
   },
   {
-    q: "¿Puedo exportar la información?",
-    a: "Sí. La lista de paquetes se puede exportar a Excel o PDF, con filtros por fecha, shipper y consolidado.",
+    q: "¿A qué destinos llegan?",
+    a: "Llegamos a múltiples destinos a través de nuestra red de agencias y distribuidores. Si necesitas confirmar la cobertura para una ruta específica, contáctanos antes de hacer el envío.",
+  },
+  {
+    q: "¿Sirve para envíos pequeños o solo para volumen?",
+    a: "Sirve para los dos. Si envías un paquete puntual, recibes el mismo cuidado y seguimiento. Si manejas envíos masivos como shipper, puedes solicitar una cuenta y administrar todos tus envíos desde un solo lugar.",
+  },
+  {
+    q: "¿Qué pasa si hay un problema con mi paquete?",
+    a: "Si surge una novedad o incidencia, registramos el caso, te informamos y le damos seguimiento hasta resolverlo. Nunca pierdes visibilidad del estado.",
+  },
+  {
+    q: "¿Cómo solicito una cuenta?",
+    a: "Si eres un shipper que envía paquetes con frecuencia, puedes solicitar una cuenta desde el botón \"Solicitar cuenta shipper\". Nuestro equipo revisa la solicitud y te habilita el acceso.",
+  },
+  {
+    q: "¿Necesito instalar algo para usar la plataforma?",
+    a: "No. Todo funciona desde el navegador en computadora, tablet o móvil. Solo necesitas tu cuenta para ingresar.",
   },
 ]
 
@@ -188,14 +243,15 @@ export default function LandingPage() {
               </span>
 
               <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                Operación logística{" "}
+                Tu paquete llega bien,{" "}
                 <span className="bg-gradient-to-r from-foreground to-mvs-secondary bg-clip-text text-transparent">
-                  clara, rápida y confiable.
+                  y tú sabes en todo momento dónde está.
                 </span>
               </h1>
               <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Centraliza paquetes, consolidados y usuarios en una sola plataforma para trabajar con
-                mayor control y menos fricción.
+                Servicio logístico completo de paquetería: lo recibimos, lo cuidamos durante todo el
+                trayecto y lo entregamos en su destino, con tracking en tiempo real y avisos en cada
+                etapa para que viajes tranquilo.
               </p>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -215,9 +271,9 @@ export default function LandingPage() {
               </div>
 
               <div className="grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
-                <StatChip icon={<Package className="h-3.5 w-3.5" />} label="Módulos" value="Paquetes + Consolidados" />
-                <StatChip icon={<ShieldCheck className="h-3.5 w-3.5" />} label="Seguridad" value="JWT + roles" />
-                <StatChip icon={<Zap className="h-3.5 w-3.5" />} label="Enfoque" value="Operación diaria" />
+                <StatChip icon={<Truck className="h-3.5 w-3.5" />} label="Servicio" value="Logística completa" />
+                <StatChip icon={<MapPin className="h-3.5 w-3.5" />} label="Visibilidad" value="Tracking en tiempo real" />
+                <StatChip icon={<Zap className="h-3.5 w-3.5" />} label="Tranquilidad" value="Avisos en cada etapa" />
               </div>
             </div>
 
@@ -231,32 +287,32 @@ export default function LandingPage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
                   <div className="ml-2 flex h-5 flex-1 items-center justify-center rounded bg-background px-2 text-[10px] text-muted-foreground">
-                    mvservices.app/paquetes
+                    mvservices.app/tracking
                   </div>
                 </div>
                 {/* Contenido fake */}
                 <div className="space-y-3 p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-muted-foreground">Paquetes</div>
-                      <div className="text-base font-semibold">Lista operativa</div>
+                      <div className="text-xs text-muted-foreground">Mis envíos</div>
+                      <div className="text-base font-semibold">Estado actual</div>
                     </div>
                     <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                      Live
+                      En vivo
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <MiniKpi label="Total" value="124" tone="bg-blue-500/10 text-blue-500" />
-                    <MiniKpi label="Asignados" value="89" tone="bg-emerald-500/10 text-emerald-500" />
-                    <MiniKpi label="Pendientes" value="35" tone="bg-amber-500/10 text-amber-500" />
+                    <MiniKpi label="Recibidos" value="124" tone="bg-blue-500/10 text-blue-500" />
+                    <MiniKpi label="En tránsito" value="89" tone="bg-violet-500/10 text-violet-500" />
+                    <MiniKpi label="Entregados" value="35" tone="bg-emerald-500/10 text-emerald-500" />
                   </div>
 
                   <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
-                    <FakeRow guia="MV-2024-0001" estado="Consolidado" />
-                    <FakeRow guia="MV-2024-0002" estado="Pendiente" warn />
-                    <FakeRow guia="MV-2024-0003" estado="Consolidado" />
-                    <FakeRow guia="MV-2024-0004" estado="Pendiente" warn />
+                    <FakeRow guia="MV-2024-0001" estado="Entregado" />
+                    <FakeRow guia="MV-2024-0002" estado="En tránsito" warn />
+                    <FakeRow guia="MV-2024-0003" estado="Entregado" />
+                    <FakeRow guia="MV-2024-0004" estado="Recibido" warn />
                   </div>
                 </div>
               </div>
@@ -269,13 +325,13 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-6xl px-6">
             <div className="mb-12 max-w-2xl">
               <span className="text-xs font-medium uppercase tracking-wider text-mvs-secondary">
-                La plataforma
+                Lo que ofrecemos
               </span>
               <h2 className="mt-2 font-serif text-3xl tracking-tight lg:text-4xl">
-                Todo lo esencial, sin distracciones
+                Pensado para que tu paquete llegue bien
               </h2>
               <p className="mt-3 text-sm text-muted-foreground lg:text-base">
-                Lo necesario para iniciar operación sin navegación innecesaria.
+                Cuidamos cada paso del recorrido para que tú no tengas que preocuparte por el camino.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
@@ -303,13 +359,13 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-6xl px-6">
             <div className="mb-10 max-w-2xl">
               <span className="text-xs font-medium uppercase tracking-wider text-mvs-secondary">
-                Flujo
+                Cómo funciona
               </span>
               <h2 className="mt-2 font-serif text-3xl tracking-tight lg:text-4xl">
-                Flujo operativo simplificado
+                Tres pasos hasta su destino
               </h2>
               <p className="mt-3 text-sm text-muted-foreground lg:text-base">
-                Diseñado para reducir pasos manuales y mejorar visibilidad de la operación.
+                Te explicamos en simple cómo viaja tu paquete con nosotros.
               </p>
             </div>
             <div className="relative grid gap-4 md:grid-cols-3">
@@ -343,10 +399,10 @@ export default function LandingPage() {
                 Preguntas frecuentes
               </span>
               <h2 className="mt-2 font-serif text-3xl tracking-tight lg:text-4xl">
-                ¿Tienes dudas?
+                ¿Tienes dudas sobre tu envío?
               </h2>
               <p className="mt-3 text-sm text-muted-foreground lg:text-base">
-                Las respuestas más solicitadas sobre la plataforma.
+                Las respuestas que más nos hacen nuestros clientes.
               </p>
             </div>
 
@@ -396,13 +452,13 @@ export default function LandingPage() {
                 <div>
                   <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Comienza ahora
+                    Empieza hoy
                   </div>
                   <h3 className="font-serif text-2xl tracking-tight sm:text-3xl">
-                    Lleva tu operación al siguiente nivel
+                    Envía con la tranquilidad de saber dónde está
                   </h3>
                   <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    Ingresa con tu cuenta o solicita una cuenta shipper en pocos minutos.
+                    Ingresa con tu cuenta o solicita una cuenta shipper en pocos minutos para gestionar tus envíos.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -431,16 +487,21 @@ export default function LandingPage() {
           <div>
             <Brand size="sm" />
             <p className="mt-2 text-xs text-muted-foreground">
-              Plataforma para gestión de paquetes y consolidados.
+              Servicio logístico de paquetería: lo recibimos, lo cuidamos durante el trayecto y lo
+              entregamos en su destino, con tracking y avisos en cada etapa.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Control por roles
+                Envío confiable
               </span>
               <span className="inline-flex items-center gap-1">
-                <Route className="h-3.5 w-3.5" />
-                Trazabilidad operativa
+                <MapPin className="h-3.5 w-3.5" />
+                Tracking en tiempo real
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <MessageCircle className="h-3.5 w-3.5" />
+                Avisos por WhatsApp
               </span>
             </div>
           </div>

@@ -6,8 +6,12 @@ export type Paquete = {
   contenido?: string;
   destinatario?: string | null;
   ref?: string | null;
+  /** Único peso real almacenado en el sistema. */
   pesoLbs?: number;
+  /** Peso en kilogramos derivado por el backend (sólo lectura). */
   pesoKgs?: number;
+  /** Posición del paquete dentro de su consolidado (1-based). Calculada por el backend. */
+  posicionEnConsolidado?: number | null;
   shipper?: { id: number; nombre: string; nombreEncargado?: string | null };
   consolidado?: { id: number; numeroGuia?: string | null; estado?: string | null } | null;
   fechaRegistro?: string | null;
@@ -15,8 +19,8 @@ export type Paquete = {
 
 export type PaqueteRegistroMinimoInput = {
   numeroGuia: string;
+  /** Único peso aceptado por el cliente. */
   pesoLbs?: number;
-  pesoKgs?: number;
   contenido: string;
   destinatario: string;
   ref?: string;
@@ -28,8 +32,8 @@ export type PaqueteUpdateInput = {
   contenido?: string | null;
   destinatario?: string | null;
   ref?: string | null;
+  /** Único peso aceptado por el cliente. */
   pesoLbs?: number;
-  pesoKgs?: number;
   shipper?: { id: number } | null;
 };
 

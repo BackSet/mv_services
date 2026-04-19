@@ -19,10 +19,16 @@ public class PaqueteRegistroMinimoRequest {
 
     /**
      * Peso en libras. Si envías "peso" se interpreta como lbs.
+     * Es el único peso almacenado en el sistema. Si llega "pesoKgs",
+     * el backend lo convierte a libras antes de persistirlo.
      */
     @JsonAlias({"peso", "pesoLbs"})
     private Double pesoLbs;
 
+    /**
+     * (Compatibilidad) Peso en kilogramos. El backend lo convierte a libras
+     * y descarta el valor original. NO se persiste en kgs.
+     */
     @JsonAlias({"pesoKgs"})
     private Double pesoKgs;
 

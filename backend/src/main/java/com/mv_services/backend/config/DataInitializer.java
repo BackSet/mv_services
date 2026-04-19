@@ -46,6 +46,8 @@ public class DataInitializer {
             basePermisos.put("consolidados.cerrar", "Cerrar consolidados");
             basePermisos.put("consolidados.delete", "Eliminar consolidados");
 
+            basePermisos.put("shippers.aprobar", "Aprobar/rechazar solicitudes de registro de shippers");
+
             for (var e : basePermisos.entrySet()) {
                 if (permisoRepository.findByNombre(e.getKey()).isEmpty()) {
                     Permiso p = new Permiso();
@@ -103,6 +105,7 @@ public class DataInitializer {
             permisoRepository.findByNombre("consolidados.add_paquete").ifPresent(mvAdminPermisos::add);
             permisoRepository.findByNombre("consolidados.cerrar").ifPresent(mvAdminPermisos::add);
             permisoRepository.findByNombre("consolidados.delete").ifPresent(mvAdminPermisos::add);
+            permisoRepository.findByNombre("shippers.aprobar").ifPresent(mvAdminPermisos::add);
             mvAdminRole.setPermisos(mvAdminPermisos);
             rolRepository.save(mvAdminRole);
 
@@ -114,6 +117,7 @@ public class DataInitializer {
             permisoRepository.findByNombre("consolidados.read").ifPresent(operarioPermisos::add);
             permisoRepository.findByNombre("consolidados.add_paquete").ifPresent(operarioPermisos::add);
             permisoRepository.findByNombre("consolidados.cerrar").ifPresent(operarioPermisos::add);
+            permisoRepository.findByNombre("shippers.aprobar").ifPresent(operarioPermisos::add);
             operarioRole.setPermisos(operarioPermisos);
             rolRepository.save(operarioRole);
 
@@ -127,6 +131,20 @@ public class DataInitializer {
                 admin.setActivo(true);
                 usuarioRepository.save(admin);
                 System.out.println("Usuario ADMIN creado: admin / admin123");
+            } else {
+                // Keep local/dev admin credentials aligned with documented defaults.
+                usuarioRepository.findByUsername("admin").ifPresent(admin -> {
+                    boolean matches = passwordEncoder.matches("admin123", admin.getPassword());
+                    if (!matches) {
+                        admin.setPassword(passwordEncoder.encode("admin123"));
+                        admin.setActivo(true);
+                        if (admin.getRol() == null) {
+                            admin.setRol(adminRole);
+                        }
+                        usuarioRepository.save(admin);
+                        System.out.println("Usuario ADMIN actualizado: admin / admin123");
+                    }
+                });
             }
 
             // Create User OPERARIO if not exists

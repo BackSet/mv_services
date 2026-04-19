@@ -84,7 +84,6 @@ public class ConsolidadoController {
         }
         nuevo.setEstado(ConsolidadoEstado.ABIERTO);
         nuevo.setPesoTotalLbs(0d);
-        nuevo.setPesoTotalKgs(0d);
         return consolidadoRepository.save(nuevo);
     }
 
@@ -102,8 +101,12 @@ public class ConsolidadoController {
         }
 
         paquete.setConsolidado(consolidado);
+        // Asigna la siguiente posición disponible al final de la lista.
+        int nextPos = paqueteRepository.findByConsolidadoId(id).size() + 1;
+        paquete.setPosicionEnConsolidado(nextPos);
         paqueteRepository.save(paquete);
 
+        reordenarPosiciones(id);
         recalcularTotales(consolidado);
         return ResponseEntity.ok(consolidadoRepository.save(consolidado));
     }
@@ -122,8 +125,10 @@ public class ConsolidadoController {
         }
 
         paquete.setConsolidado(null);
+        paquete.setPosicionEnConsolidado(null);
         paqueteRepository.save(paquete);
 
+        reordenarPosiciones(id);
         recalcularTotales(consolidado);
         return ResponseEntity.ok(consolidadoRepository.save(consolidado));
     }
@@ -179,6 +184,7 @@ public class ConsolidadoController {
         List<Paquete> paquetes = paqueteRepository.findByConsolidadoId(id);
         for (Paquete p : paquetes) {
             p.setConsolidado(null);
+            p.setPosicionEnConsolidado(null);
             paqueteRepository.save(p);
         }
 
@@ -186,15 +192,35 @@ public class ConsolidadoController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Recalcula la suma de pesos del consolidado a partir de las libras
+     * de cada paquete. El total en kgs se deriva en la entidad.
+     */
     private void recalcularTotales(Consolidado consolidado) {
         List<Paquete> paquetes = paqueteRepository.findByConsolidadoId(consolidado.getId());
         double lbs = 0d;
-        double kgs = 0d;
         for (Paquete p : paquetes) {
             if (p.getPesoLbs() != null) lbs += p.getPesoLbs();
-            if (p.getPesoKgs() != null) kgs += p.getPesoKgs();
         }
         consolidado.setPesoTotalLbs(lbs);
-        consolidado.setPesoTotalKgs(kgs);
+    }
+
+    /**
+     * Recompacta las posiciones de los paquetes de un consolidado en orden ascendente,
+     * eliminando huecos producidos al quitar elementos. Conserva el orden actual
+     * (por posición previa o por id como fallback).
+     */
+    private void reordenarPosiciones(Long consolidadoId) {
+        List<Paquete> paquetes =
+                paqueteRepository.findByConsolidadoIdOrderByPosicionEnConsolidadoAscIdAsc(consolidadoId);
+        int pos = 1;
+        for (Paquete p : paquetes) {
+            Integer current = p.getPosicionEnConsolidado();
+            if (current == null || current != pos) {
+                p.setPosicionEnConsolidado(pos);
+                paqueteRepository.save(p);
+            }
+            pos++;
+        }
     }
 }

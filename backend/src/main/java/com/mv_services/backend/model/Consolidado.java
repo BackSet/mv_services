@@ -1,6 +1,7 @@
 package com.mv_services.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,7 +11,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -33,9 +36,8 @@ public class Consolidado {
     @Column(unique = true)
     private String numeroGuia;
 
+    /** Único peso total persistido (libras). El total en kgs se deriva. */
     private Double pesoTotalLbs;
-
-    private Double pesoTotalKgs;
 
     @Enumerated(EnumType.STRING)
     private ConsolidadoEstado estado;
@@ -45,7 +47,15 @@ public class Consolidado {
     // desvinculando paquetes antes de eliminar el consolidado.
     @OneToMany(mappedBy = "consolidado", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnoreProperties({"consolidado", "shipper"})
+    @OrderBy("posicionEnConsolidado ASC, id ASC")
     @Builder.Default
     private List<Paquete> paquetes = new ArrayList<>();
-}
 
+    /** Total de kilogramos derivado de las libras. Sólo lectura en JSON. */
+    @Transient
+    @JsonProperty(value = "pesoTotalKgs", access = JsonProperty.Access.READ_ONLY)
+    public Double getPesoTotalKgs() {
+        if (pesoTotalLbs == null) return null;
+        return pesoTotalLbs * Paquete.LBS_TO_KGS;
+    }
+}

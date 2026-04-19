@@ -12,4 +12,10 @@ public interface PaqueteRepository extends JpaRepository<Paquete, Long> {
     List<Paquete> findByConsolidadoId(Long consolidadoId);
     List<Paquete> findByShipperId(Long shipperId);
     Optional<Paquete> findByIdAndShipperId(Long id, Long shipperId);
+
+    /**
+     * Obtiene los paquetes de un consolidado ordenados por posición (asc),
+     * usando id como fallback determinista cuando la posición es null.
+     */
+    List<Paquete> findByConsolidadoIdOrderByPosicionEnConsolidadoAscIdAsc(Long consolidadoId);
 }

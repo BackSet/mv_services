@@ -20,6 +20,7 @@ export function SectionCard({
   children,
   className,
   noPadding,
+  right,
 }: {
   icon?: LucideIcon;
   iconColor?: keyof typeof COLOR_MAP;
@@ -28,6 +29,7 @@ export function SectionCard({
   children: ReactNode;
   className?: string;
   noPadding?: boolean;
+  right?: ReactNode;
 }) {
   const color = COLOR_MAP[iconColor] ?? COLOR_MAP.blue;
 
@@ -40,10 +42,11 @@ export function SectionCard({
               <Icon className={cn('h-3.5 w-3.5', color.text)} />
             </div>
           )}
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold">{title}</h3>
             {description && <p className="text-xs text-muted-foreground">{description}</p>}
           </div>
+          {right && <div className="shrink-0">{right}</div>}
         </div>
       </div>
       <div className={noPadding ? '' : 'p-6'}>

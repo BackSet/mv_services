@@ -8,6 +8,9 @@ import {
   Boxes,
   ArrowRight,
   LayoutDashboard,
+  PlusCircle,
+  ClipboardList,
+  Users,
 } from 'lucide-react';
 import { useMe } from '@/hooks/useMe';
 import { usePaquetesList } from '@/hooks/usePaquetes';
@@ -155,13 +158,17 @@ function DashboardOps() {
 
   const totalPaquetes = paquetes.length;
   const totalShippers = shippers.length;
+  const consolidadosAbiertos = useMemo(
+    () => consolidados.filter((c) => (c.estado || '').toUpperCase() === 'ABIERTO').length,
+    [consolidados]
+  );
 
   const paquetesSinShipper = useMemo(() => paquetes.filter((p) => !p.shipper).length, [paquetes]);
   const paquetesSinConsolidado = useMemo(() => paquetes.filter((p) => !p.consolidado).length, [paquetes]);
 
   const atencionesPendientes = useMemo(() => {
     return paquetes.filter((p) => {
-      const faltaPeso = p.pesoLbs == null && p.pesoKgs == null;
+      const faltaPeso = p.pesoLbs == null;
       const faltaContenido = !p.contenido;
       const faltaShipper = !p.shipper;
       return faltaPeso || faltaContenido || faltaShipper;
@@ -195,8 +202,38 @@ function DashboardOps() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} />
             <StatCard icon={AlertCircle} label="Atenciones Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} highlight />
-            <StatCard icon={Truck} label="Consolidados" value={consolidados.length} loading={loadingConsolidados} />
+            <StatCard icon={Truck} label="Consolidados Abiertos" value={consolidadosAbiertos} loading={loadingConsolidados} />
             <StatCard icon={Boxes} label="Shippers" value={totalShippers} loading={loadingShippers} />
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <SectionHeader title="Acciones rápidas" subtitle="Flujos frecuentes para el equipo operativo" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/paquetes/new')}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+              >
+                <PlusCircle className="h-4 w-4 text-primary" />
+                Nuevo paquete
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/consolidados/new')}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+              >
+                <ClipboardList className="h-4 w-4 text-primary" />
+                Nuevo consolidado
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/shippers')}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+              >
+                <Users className="h-4 w-4 text-primary" />
+                Gestionar shippers
+              </button>
+            </div>
           </div>
 
           {/* Three columns */}
@@ -263,7 +300,7 @@ function DashboardOps() {
                     .map((p) => {
                       const faltas = [
                         !p.shipper ? 'sin shipper' : null,
-                        p.pesoLbs == null && p.pesoKgs == null ? 'sin peso' : null,
+                        p.pesoLbs == null ? 'sin peso' : null,
                         !p.contenido ? 'sin contenido' : null,
                       ].filter(Boolean).join(' · ');
                       return (
@@ -347,7 +384,7 @@ function DashboardShipper() {
 
   const atencionesPendientes = useMemo(() => {
     return paquetes.filter((p) => {
-      const faltaPeso = p.pesoLbs == null && p.pesoKgs == null;
+      const faltaPeso = p.pesoLbs == null;
       const faltaContenido = !p.contenido;
       const faltaShipper = !p.shipper;
       return faltaPeso || faltaContenido || faltaShipper;
@@ -378,6 +415,28 @@ function DashboardShipper() {
             <StatCard icon={Boxes} label="Sin Consolidado" value={paquetesSinConsolidado} loading={loadingPaquetes} />
           </div>
 
+          <div className="rounded-xl border border-border bg-card p-5">
+            <SectionHeader title="Acciones rápidas" subtitle="Accede a tareas frecuentes de shipper" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/paquetes/new')}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+              >
+                <PlusCircle className="h-4 w-4 text-primary" />
+                Registrar paquete
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/paquetes')}
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+              >
+                <ClipboardList className="h-4 w-4 text-primary" />
+                Ver mis paquetes
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-xl border border-border bg-card p-5">
               <SectionHeader
@@ -400,7 +459,7 @@ function DashboardShipper() {
                     .map((p) => {
                       const faltas = [
                         !p.shipper ? 'sin shipper' : null,
-                        p.pesoLbs == null && p.pesoKgs == null ? 'sin peso' : null,
+                        p.pesoLbs == null ? 'sin peso' : null,
                         !p.contenido ? 'sin contenido' : null,
                       ].filter(Boolean).join(' · ');
                       return (

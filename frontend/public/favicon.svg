@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MV Services">
+  <defs>
+    <linearGradient id="mvs-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f2937" />
+      <stop offset="100%" stop-color="#0b1120" />
+    </linearGradient>
+    <linearGradient id="mvs-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c" />
+      <stop offset="100%" stop-color="#ef4444" />
+    </linearGradient>
+    <style>
+      @media (prefers-color-scheme: light) {
+        .mvs-bg { fill: #0b1120; }
+      }
+    </style>
+  </defs>
+
+  <rect class="mvs-bg" x="2" y="2" width="60" height="60" rx="14" fill="url(#mvs-bg)" />
+
+  <path
+    d="M14 46 V18 h6 l12 17 12-17 h6 v28 h-6.5 V29.5 L32 45 20.5 29.5 V46 z"
+    fill="#ffffff"
+  />
+
+  <circle cx="49" cy="49" r="5.5" fill="url(#mvs-accent)" />
+  <circle cx="49" cy="49" r="2" fill="#ffffff" opacity="0.95" />
+</svg>

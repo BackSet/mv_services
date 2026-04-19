@@ -36,3 +36,5 @@ frontend/.vite/
 # Misc
 *.tmp
 *.temp
+
+.git_commit_msg.txt

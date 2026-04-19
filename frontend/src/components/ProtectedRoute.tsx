@@ -4,9 +4,11 @@ import { useMe } from '@/hooks/useMe';
 const ProtectedRoute = ({
     children,
     allowedRoles,
+    allowedPermissions,
 }: {
     children: React.ReactNode;
     allowedRoles?: string[];
+    allowedPermissions?: string[];
 }) => {
     const { me, loading } = useMe();
     const token = localStorage.getItem('token');
@@ -15,13 +17,26 @@ const ProtectedRoute = ({
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles?.length) {
+    const needsRoleCheck = Boolean(allowedRoles?.length);
+    const needsPermissionCheck = Boolean(allowedPermissions?.length);
+
+    if (needsRoleCheck || needsPermissionCheck) {
         if (loading) {
             return <div className="p-6 text-sm text-muted-foreground">Cargando…</div>;
         }
         const role = me?.rol ?? null;
-        if (!role || !allowedRoles.includes(role)) {
-            return <Navigate to="/dashboard" replace />;
+        const permisos = me?.permisos ?? [];
+
+        if (needsRoleCheck) {
+            if (!role || !allowedRoles!.includes(role)) {
+                return <Navigate to="/dashboard" replace />;
+            }
+        }
+        if (needsPermissionCheck) {
+            const ok = allowedPermissions!.some((p) => permisos.includes(p));
+            if (!ok) {
+                return <Navigate to="/dashboard" replace />;
+            }
         }
     }
 

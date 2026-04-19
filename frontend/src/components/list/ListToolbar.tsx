@@ -11,6 +11,7 @@ interface ListToolbarProps {
   filters?: ReactNode
   actions?: ReactNode
   className?: string
+  searchInputProps?: React.InputHTMLAttributes<HTMLInputElement>
 }
 
 export function ListToolbar({
@@ -20,6 +21,7 @@ export function ListToolbar({
   filters,
   actions,
   className,
+  searchInputProps,
 }: ListToolbarProps) {
   const [localSearch, setLocalSearch] = useState(search ?? '')
   const debouncedSearch = useDebounce(localSearch, 300)
@@ -60,6 +62,7 @@ export function ListToolbar({
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               className="pl-9 pr-8 h-9"
+              {...searchInputProps}
             />
             {localSearch && (
               <button

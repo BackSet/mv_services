@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,7 +21,10 @@ export type NotionColumn<T> = {
   header: string;
   className?: string;
   cell: (row: T) => React.ReactNode;
+  sortKey?: string;
 };
+
+export type SortState = { key: string; dir: 'asc' | 'desc' } | null;
 
 export default function NotionTable<T>({
   columns,
@@ -33,6 +36,9 @@ export default function NotionTable<T>({
   selectedIds,
   onSelectionChange,
   rowActions,
+  density = 'comfortable',
+  sort,
+  onSortChange,
 }: {
   columns: Array<NotionColumn<T>>;
   rows: T[];
@@ -44,7 +50,12 @@ export default function NotionTable<T>({
   onSelectionChange?: (ids: (string | number)[]) => void;
   /** Si se define, se añade una columna ACCIONES con menú (Ver detalles, Editar, Eliminar según lo devuelto) */
   rowActions?: (row: T) => Array<NotionTableAction<T>>;
+  density?: 'comfortable' | 'compact';
+  sort?: SortState;
+  onSortChange?: (next: SortState) => void;
 }) {
+  const cellPadding = density === 'compact' ? 'px-3 py-1.5' : 'px-3 py-2.5';
+  const headerPadding = density === 'compact' ? 'h-9 px-3' : 'h-10 px-3';
   const selectedSet = selectedIds ?? new Set<string | number>();
   const toggleRow = (id: string | number) => {
     if (!onSelectionChange) return;
@@ -68,7 +79,7 @@ export default function NotionTable<T>({
           <thead>
             <tr>
               {showCheckbox && (
-                <th className="w-10 h-10 px-2 text-left border-b border-border/30 bg-muted/20">
+                <th className={cn('w-10 text-left border-b border-border/30 bg-muted/20', headerPadding)}>
                   <input
                     type="checkbox"
                     checked={rows.length > 0 && selectedSet.size === rows.length}
@@ -78,21 +89,43 @@ export default function NotionTable<T>({
                   />
                 </th>
               )}
-              {columns.map((c, idx) => (
-                <th
-                  key={idx}
-                  className={cn(
-                    'h-10 px-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/30 bg-muted/20',
-                    c.className
-                  )}
-                >
-                  <div className="flex items-center gap-1">
-                    {c.header}
-                  </div>
-                </th>
-              ))}
+              {columns.map((c, idx) => {
+                const isSortable = Boolean(c.sortKey && onSortChange);
+                const isActive = sort && c.sortKey && sort.key === c.sortKey;
+                const handleSort = () => {
+                  if (!isSortable || !onSortChange || !c.sortKey) return;
+                  if (!isActive) onSortChange({ key: c.sortKey, dir: 'asc' });
+                  else if (sort?.dir === 'asc') onSortChange({ key: c.sortKey, dir: 'desc' });
+                  else onSortChange(null);
+                };
+                return (
+                  <th
+                    key={idx}
+                    className={cn(
+                      'text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/30 bg-muted/20',
+                      headerPadding,
+                      c.className,
+                      isSortable && 'cursor-pointer select-none hover:text-foreground transition-colors'
+                    )}
+                    onClick={isSortable ? handleSort : undefined}
+                  >
+                    <div className="flex items-center gap-1">
+                      {c.header}
+                      {isSortable && (
+                        isActive ? (
+                          sort?.dir === 'asc'
+                            ? <ArrowUp className="h-3 w-3 text-primary" />
+                            : <ArrowDown className="h-3 w-3 text-primary" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
               {hasActions && (
-                <th className="h-10 w-[80px] px-3 text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/30 bg-muted/20">
+                <th className={cn('w-[80px] text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/30 bg-muted/20', headerPadding)}>
                   ACCIONES
                 </th>
               )}
@@ -111,7 +144,7 @@ export default function NotionTable<T>({
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
                   {showCheckbox && (
-                    <td className="w-10 px-2 py-2.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                    <td className={cn('w-10 align-middle', cellPadding)} onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedSet.has(id)}
@@ -121,7 +154,7 @@ export default function NotionTable<T>({
                     </td>
                   )}
                   {columns.map((c, idx) => (
-                    <td key={idx} className={cn('px-3 py-2.5 align-middle', c.className)}>
+                    <td key={idx} className={cn('align-middle', cellPadding, c.className)}>
                       <div className="truncate">
                         {c.cell(row)}
                       </div>
@@ -129,7 +162,7 @@ export default function NotionTable<T>({
                   ))}
                   {hasActions && rowActions && (
                     <td
-                      className="w-[80px] px-3 py-2.5 align-middle text-right"
+                      className={cn('w-[80px] align-middle text-right', cellPadding)}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu>
@@ -137,7 +170,7 @@ export default function NotionTable<T>({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-8 w-8 opacity-60 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                             aria-label="Acciones"
                           >
                             <MoreHorizontal className="h-4 w-4" />

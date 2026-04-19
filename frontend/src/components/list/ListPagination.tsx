@@ -11,6 +11,8 @@ export interface ListPaginationProps {
   className?: string
   showRange?: boolean
   variant?: 'compact' | 'full'
+  pageSizeOptions?: number[]
+  onPageSizeChange?: (next: number) => void
 }
 
 export function ListPagination({
@@ -22,8 +24,10 @@ export function ListPagination({
   className,
   showRange = true,
   variant = 'full',
+  pageSizeOptions,
+  onPageSizeChange,
 }: ListPaginationProps) {
-  if (totalPages <= 1) return null
+  if (totalPages <= 1 && !onPageSizeChange) return null
 
   const canPrev = page > 0
   const canNext = page < totalPages - 1
@@ -32,12 +36,26 @@ export function ListPagination({
   const to = total ? Math.min((page + 1) * size, total) : 0
 
   return (
-    <div className={cn('flex items-center justify-between pt-4 border-t border-border/40', className)}>
-      <div className="text-xs text-muted-foreground tabular-nums">
+    <div className={cn('flex items-center justify-between pt-4 border-t border-border/40 gap-2 flex-wrap', className)}>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
         {showRange && total > 0 ? (
-          <>Mostrando <strong>{from}</strong>–<strong>{to}</strong> de <strong>{total}</strong></>
+          <span>Mostrando <strong>{from}</strong>–<strong>{to}</strong> de <strong>{total}</strong></span>
         ) : (
-          <>Página {page + 1} de {totalPages}</>
+          <span>Página {page + 1} de {totalPages}</span>
+        )}
+        {pageSizeOptions && onPageSizeChange && (
+          <label className="flex items-center gap-1.5">
+            <span className="text-[11px] uppercase tracking-wider">Por página</span>
+            <select
+              value={size}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+            >
+              {pageSizeOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </label>
         )}
       </div>
 

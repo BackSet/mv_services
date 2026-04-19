@@ -34,6 +34,15 @@ export function clearMeCache() {
   inflight = null;
 }
 
+export function setMeCache(me: Me) {
+  cachedMe = me;
+  meListeners.forEach((fn) => {
+    try { fn(me); } catch { /* noop */ }
+  });
+}
+
+const meListeners = new Set<(me: Me) => void>();
+
 export function useMe() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const [me, setMe] = useState<Me | null>(() => (token ? cachedMe : null));
@@ -44,7 +53,17 @@ export function useMe() {
     if (!token) {
       return;
     }
-    if (cachedMe) return;
+
+    const onUpdate = (m: Me) => setMe(m);
+    meListeners.add(onUpdate);
+
+    if (cachedMe) {
+      setMe(cachedMe);
+      setLoading(false);
+      return () => {
+        meListeners.delete(onUpdate);
+      };
+    }
 
     let mounted = true;
     fetchMe()
@@ -65,6 +84,7 @@ export function useMe() {
 
     return () => {
       mounted = false;
+      meListeners.delete(onUpdate);
     };
   }, [token]);
 

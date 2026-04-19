@@ -53,6 +53,8 @@ public class PaqueteController {
             // Forzar shipper del usuario autenticado
             paquete.setShipper(u.getShipper());
         }
+        // La posición sólo la asigna el ConsolidadoController al agregar paquete.
+        paquete.setPosicionEnConsolidado(null);
         paquete.setFechaRegistro(LocalDateTime.now());
         return paqueteRepository.save(paquete);
     }
@@ -73,19 +75,14 @@ public class PaqueteController {
         }
 
         Double lbs = req.getPesoLbs();
-        Double kgs = req.getPesoKgs();
-
-        // Completar peso faltante si es posible
-        if (lbs == null && kgs != null) {
-            lbs = kgs * 2.2046226218d;
-        } else if (kgs == null && lbs != null) {
-            kgs = lbs * 0.45359237d;
+        // Si sólo llega kgs, convertir a libras (única unidad persistida).
+        if (lbs == null && req.getPesoKgs() != null) {
+            lbs = req.getPesoKgs() * 2.2046226218d;
         }
 
         Paquete paquete = Paquete.builder()
                 .numeroGuia(req.getNumeroGuia())
                 .pesoLbs(lbs)
-                .pesoKgs(kgs)
                 .contenido(req.getContenido())
                 .destinatario(req.getDestinatario())
                 .ref(req.getRef())
@@ -161,15 +158,9 @@ public class PaqueteController {
                     if (!isShipper && paqueteDetails.getShipper() != null) {
                         paquete.setShipper(paqueteDetails.getShipper());
                     }
-                    if (paqueteDetails.getPesoLbs() != null && paqueteDetails.getPesoKgs() != null) {
+                    // Sólo se persiste el peso en libras; se ignora cualquier pesoKgs entrante.
+                    if (paqueteDetails.getPesoLbs() != null) {
                         paquete.setPesoLbs(paqueteDetails.getPesoLbs());
-                        paquete.setPesoKgs(paqueteDetails.getPesoKgs());
-                    } else if (paqueteDetails.getPesoLbs() != null) {
-                        paquete.setPesoLbs(paqueteDetails.getPesoLbs());
-                        paquete.setPesoKgs(paqueteDetails.getPesoLbs() * 0.45359237d);
-                    } else if (paqueteDetails.getPesoKgs() != null) {
-                        paquete.setPesoKgs(paqueteDetails.getPesoKgs());
-                        paquete.setPesoLbs(paqueteDetails.getPesoKgs() * 2.2046226218d);
                     }
                     if (paqueteDetails.getContenido() != null) {
                         paquete.setContenido(paqueteDetails.getContenido());
@@ -196,11 +187,34 @@ public class PaqueteController {
             if (u == null || u.getShipper() == null) return ResponseEntity.notFound().build();
             var opt = paqueteRepository.findByIdAndShipperId(id, u.getShipper().getId());
             if (opt.isEmpty()) return ResponseEntity.notFound().build();
+            Long consolidadoId = opt.get().getConsolidado() != null ? opt.get().getConsolidado().getId() : null;
             paqueteRepository.deleteById(opt.get().getId());
+            if (consolidadoId != null) reordenarPosicionesConsolidado(consolidadoId);
             return ResponseEntity.ok().build();
         }
-        if (!paqueteRepository.existsById(id)) return ResponseEntity.notFound().build();
+        var existing = paqueteRepository.findById(id);
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        Long consolidadoId = existing.get().getConsolidado() != null ? existing.get().getConsolidado().getId() : null;
         paqueteRepository.deleteById(id);
+        if (consolidadoId != null) reordenarPosicionesConsolidado(consolidadoId);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Reordena posiciones de los paquetes restantes en un consolidado tras
+     * eliminar/desvincular uno, manteniendo el orden actual sin huecos.
+     */
+    private void reordenarPosicionesConsolidado(Long consolidadoId) {
+        List<Paquete> paquetes =
+                paqueteRepository.findByConsolidadoIdOrderByPosicionEnConsolidadoAscIdAsc(consolidadoId);
+        int pos = 1;
+        for (Paquete p : paquetes) {
+            Integer current = p.getPosicionEnConsolidado();
+            if (current == null || current != pos) {
+                p.setPosicionEnConsolidado(pos);
+                paqueteRepository.save(p);
+            }
+            pos++;
+        }
     }
 }

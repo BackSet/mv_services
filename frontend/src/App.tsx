@@ -36,6 +36,8 @@ import PermisoNewPage from "./pages/permisos/PermisoNewPage"
 import PermisoViewPage from "./pages/permisos/PermisoViewPage"
 import PermisoEditPage from "./pages/permisos/PermisoEditPage"
 
+import SolicitudesShippersPage from "./pages/solicitudes/SolicitudesShippersPage"
+
 const queryClient = new QueryClient()
 
 function App() {
@@ -79,6 +81,7 @@ function App() {
           <Route path="/consolidados" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><ConsolidadosListPage /></ProtectedRoute>} />
           <Route path="/consolidados/new" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN"]}><ConsolidadoNewPage /></ProtectedRoute>} />
           <Route path="/consolidados/:id" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><ConsolidadoViewPage /></ProtectedRoute>} />
+          <Route path="/solicitudes-shippers" element={<ProtectedRoute allowedPermissions={["shippers.aprobar"]}><SolicitudesShippersPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

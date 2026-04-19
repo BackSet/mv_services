@@ -7,23 +7,31 @@ import {
     KeyRound,
     Shield,
     Search,
-    Sun,
-    Moon,
-    Bell,
     Menu,
-    ChevronLeft,
+    ChevronRight,
     Plus,
-    PlusCircle,
-    LogOut
+    LogOut,
+    Sparkles,
+    Settings,
+    User as UserIcon,
+    Moon,
+    Sun,
+    Monitor,
+    HelpCircle,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Command as CommandIcon,
+    Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
-import { useTheme } from '@/components/theme-provider';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useMe } from '@/hooks/useMe';
+import { Brand, BrandMark } from '@/components/brand';
+import { useTheme } from '@/components/theme-provider';
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -38,10 +46,14 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import NotificacionesBell from '@/components/layout/NotificacionesBell';
+import { useSolicitudesPendientes } from '@/hooks/useSolicitudesPendientes';
+import MiPerfilDialog from '@/components/perfil/MiPerfilDialog';
 
 type SidebarIcon = React.ElementType<{ className?: string }>;
 
@@ -54,35 +66,83 @@ type MeResponse = {
     shipperNombre?: string | null;
 };
 
+type NavItem = {
+    label: string;
+    path: string;
+};
+
+const isMacPlatform = () => {
+    if (typeof navigator === 'undefined') return false;
+    const platform = (navigator as Navigator & { userAgentData?: { platform?: string } });
+    const value = platform.userAgentData?.platform || navigator.platform || navigator.userAgent;
+    return value.toLowerCase().includes('mac');
+};
+
 const SidebarItem = ({
     icon: Icon,
     label,
     path,
     collapsed = false,
-    onAddClick
+    onAddClick,
+    quickHint,
+    badgeCount,
 }: {
-    icon: SidebarIcon,
-    label: string,
-    path: string,
-    collapsed?: boolean,
-    onAddClick?: () => void
+    icon: SidebarIcon;
+    label: string;
+    path: string;
+    collapsed?: boolean;
+    onAddClick?: () => void;
+    quickHint?: string;
+    badgeCount?: number;
 }) => {
     const location = useLocation();
     const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
 
     return (
-        <div className="group relative">
+        <div className="group relative" title={collapsed ? label : undefined}>
             <Link to={path} className="block">
                 <div
                     className={cn(
-                        "flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors cursor-pointer select-none",
+                        "flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all cursor-pointer select-none relative",
                         isActive
-                            ? "bg-primary/10 text-primary"
+                            ? "bg-primary/10 text-primary shadow-[inset_2px_0_0_0_var(--mvs-secondary,theme(colors.primary.DEFAULT))]"
                             : "text-sidebar-foreground hover:bg-sidebar-hover hover:text-foreground",
-                        collapsed && "justify-center px-0"
-                    )}>
-                    <Icon className={cn("w-[18px] h-[18px] flex-shrink-0", isActive ? "opacity-100" : "opacity-70")} />
-                    {!collapsed && <span className="truncate">{label}</span>}
+                        collapsed && "justify-center px-0",
+                    )}
+                >
+                    {/* indicador activo lateral en colapsado */}
+                    {collapsed && isActive && (
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-primary" aria-hidden />
+                    )}
+                    <div className="relative shrink-0">
+                        <Icon className={cn("w-[18px] h-[18px]", isActive ? "opacity-100" : "opacity-70")} />
+                        {collapsed && badgeCount && badgeCount > 0 ? (
+                            <span
+                                className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold shadow ring-2 ring-sidebar-background"
+                                aria-hidden
+                            >
+                                {badgeCount > 9 ? '9+' : badgeCount}
+                            </span>
+                        ) : null}
+                    </div>
+                    {!collapsed && (
+                        <>
+                            <span className="truncate flex-1">{label}</span>
+                            {badgeCount && badgeCount > 0 ? (
+                                <span
+                                    className="inline-flex items-center justify-center min-w-[20px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold"
+                                    aria-label={`${badgeCount} pendientes`}
+                                >
+                                    {badgeCount > 99 ? '99+' : badgeCount}
+                                </span>
+                            ) : null}
+                            {quickHint && !badgeCount && (
+                                <kbd className="hidden lg:inline-flex h-4 items-center rounded border border-sidebar-border bg-sidebar-hover/50 px-1 font-mono text-[9px] font-medium text-sidebar-muted">
+                                    {quickHint}
+                                </kbd>
+                            )}
+                        </>
+                    )}
                 </div>
             </Link>
             {!collapsed && onAddClick && (
@@ -92,6 +152,7 @@ const SidebarItem = ({
                         onAddClick();
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 hover:bg-muted-foreground/20 p-0.5 rounded transition-all text-muted-foreground"
+                    title={`Crear nuevo ${label.toLowerCase()}`}
                 >
                     <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -100,12 +161,13 @@ const SidebarItem = ({
     );
 };
 
-const SidebarSectionHeader = ({ title, collapsed }: { title: string, collapsed?: boolean }) => {
-    if (collapsed) return <Separator className="my-3 opacity-40 border-sidebar-border" />;
+const SidebarSectionHeader = ({ title, collapsed }: { title: string; collapsed?: boolean }) => {
+    if (collapsed) return <Separator className="my-2 opacity-40 border-sidebar-border" />;
     return (
-        <h4 className="px-2.5 text-[10px] font-semibold text-sidebar-muted mt-6 mb-1 uppercase tracking-[0.08em]">
-            {title}
-        </h4>
+        <div className="mt-5 mb-1 flex items-center gap-2 px-2.5">
+            <h4 className="text-[10px] font-semibold text-sidebar-muted uppercase tracking-[0.08em]">{title}</h4>
+            <div className="h-px flex-1 bg-sidebar-border/60" />
+        </div>
     );
 };
 
@@ -116,6 +178,8 @@ const SidebarContent = ({
     canSeeAdmin,
     canSeeOps,
     shipperNombre,
+    canSeeSolicitudes = false,
+    solicitudesPendientes = 0,
 }: {
     collapsed?: boolean;
     onQuickCreate?: () => void;
@@ -123,62 +187,125 @@ const SidebarContent = ({
     canSeeAdmin: boolean;
     canSeeOps: boolean;
     shipperNombre?: string | null;
+    canSeeSolicitudes?: boolean;
+    solicitudesPendientes?: number;
 }) => (
     <>
         {/* Workspace Logo */}
-        <div className={cn("px-3 pt-4 pb-2", collapsed && "px-2")}>
+        <div className={cn("px-3 pt-3 pb-2", collapsed && "px-2")}>
             <Link
                 to="/dashboard"
                 className={cn(
-                    "flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-muted/60 transition-colors",
-                    collapsed && "justify-center px-0"
+                    "flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-sidebar-hover transition-colors",
+                    collapsed && "justify-center px-0",
                 )}
+                title={shipperNombre || "MV Services"}
             >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-foreground to-foreground/80 flex-shrink-0 flex items-center justify-center text-background text-xs font-bold shadow-sm">
-                    M
-                </div>
+                <BrandMark size={collapsed ? 30 : 32} />
                 {!collapsed && (
-                    <div className="flex flex-col overflow-hidden">
-                        <span className="text-sm font-semibold text-sidebar-foreground truncate leading-tight">
-                            {shipperNombre || "MV Services"}
-                        </span>
-                        <span className="text-[10px] text-sidebar-muted truncate mt-0.5">
-                            Sistema de Gestión
-                        </span>
+                    <div className="flex flex-col overflow-hidden leading-tight">
+                        {shipperNombre ? (
+                            <>
+                                <span className="text-sm font-semibold text-sidebar-foreground truncate">
+                                    {shipperNombre}
+                                </span>
+                                <span className="text-[10px] text-sidebar-muted truncate mt-0.5">
+                                    Panel de shipper
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <Brand size="sm" className="text-sidebar-foreground" />
+                                <span className="text-[10px] text-sidebar-muted truncate mt-0.5">
+                                    Sistema de Gestión
+                                </span>
+                            </>
+                        )}
                     </div>
                 )}
             </Link>
         </div>
 
-        {/* Search */}
-        {!collapsed && onSearchClick && (
-            <div className="px-3 pb-1">
-                <button
-                    type="button"
-                    onClick={onSearchClick}
-                    className="w-full flex items-center gap-2 rounded-lg border border-sidebar-border bg-background/50 px-2.5 py-1.5 text-xs text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground transition-colors text-left"
-                >
-                    <Search className="w-3.5 h-3.5 shrink-0 opacity-60" />
-                    <span className="flex-1 truncate">Buscar</span>
-                    <kbd className="hidden sm:inline-flex text-[9px] font-mono bg-sidebar-hover/80 border border-sidebar-border px-1 py-0.5 rounded text-sidebar-muted">
-                        ⌘K
-                    </kbd>
-                </button>
-            </div>
-        )}
+        {/* Acciones principales: Buscar + Crear */}
+        <div className={cn("px-3 pb-2 space-y-1.5", collapsed && "px-2")}>
+            {!collapsed ? (
+                <>
+                    {onSearchClick && (
+                        <button
+                            type="button"
+                            onClick={onSearchClick}
+                            className="w-full flex items-center gap-2 rounded-lg border border-sidebar-border bg-background/40 px-2.5 py-1.5 text-xs text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground transition-colors text-left"
+                        >
+                            <Search className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                            <span className="flex-1 truncate">Buscar…</span>
+                            <kbd className="hidden sm:inline-flex text-[9px] font-mono bg-sidebar-hover/80 border border-sidebar-border px-1 py-0.5 rounded text-sidebar-muted">
+                                ⌘K
+                            </kbd>
+                        </button>
+                    )}
+                    {onQuickCreate && (
+                        <button
+                            type="button"
+                            onClick={onQuickCreate}
+                            className="w-full flex items-center gap-2 rounded-lg bg-primary/10 hover:bg-primary/15 text-primary px-2.5 py-1.5 text-xs font-medium transition-colors"
+                        >
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span className="flex-1 text-left">Crear</span>
+                            <kbd className="hidden sm:inline-flex text-[9px] font-mono bg-primary/15 border border-primary/20 px-1 py-0.5 rounded">
+                                C
+                            </kbd>
+                        </button>
+                    )}
+                </>
+            ) : (
+                <>
+                    {onSearchClick && (
+                        <button
+                            type="button"
+                            onClick={onSearchClick}
+                            className="w-full flex items-center justify-center rounded-lg p-1.5 text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-foreground transition-colors"
+                            title="Buscar (⌘K)"
+                        >
+                            <Search className="w-4 h-4" />
+                        </button>
+                    )}
+                    {onQuickCreate && (
+                        <button
+                            type="button"
+                            onClick={onQuickCreate}
+                            className="w-full flex items-center justify-center rounded-lg bg-primary/10 hover:bg-primary/15 text-primary p-1.5 transition-colors"
+                            title="Crear (C)"
+                        >
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    )}
+                </>
+            )}
+        </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-            <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/dashboard" collapsed={collapsed} />
+        <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5" aria-label="Navegación principal">
+            <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/dashboard" collapsed={collapsed} quickHint="G D" />
 
             <SidebarSectionHeader title="GESTIÓN" collapsed={collapsed} />
-            <SidebarItem icon={Package} label="Paquetes" path="/paquetes" collapsed={collapsed} onAddClick={onQuickCreate} />
-            <SidebarItem icon={ShoppingBag} label="Consolidados" path="/consolidados" collapsed={collapsed} />
+            <SidebarItem icon={Package} label="Paquetes" path="/paquetes" collapsed={collapsed} onAddClick={onQuickCreate} quickHint="G P" />
+            <SidebarItem icon={ShoppingBag} label="Consolidados" path="/consolidados" collapsed={collapsed} quickHint="G C" />
 
-            {canSeeOps ? (
+            {canSeeOps || canSeeSolicitudes ? (
                 <>
                     <SidebarSectionHeader title="OPERACIÓN" collapsed={collapsed} />
-                    <SidebarItem icon={Globe} label="Shippers" path="/shippers" collapsed={collapsed} />
+                    {canSeeOps ? (
+                        <SidebarItem icon={Globe} label="Shippers" path="/shippers" collapsed={collapsed} quickHint="G S" />
+                    ) : null}
+                    {canSeeSolicitudes ? (
+                        <SidebarItem
+                            icon={Inbox}
+                            label="Solicitudes shipper"
+                            path="/solicitudes-shippers"
+                            collapsed={collapsed}
+                            badgeCount={solicitudesPendientes}
+                        />
+                    ) : null}
                 </>
             ) : null}
 
@@ -190,39 +317,41 @@ const SidebarContent = ({
                     <SidebarItem icon={KeyRound} label="Permisos" path="/permisos" collapsed={collapsed} />
                 </>
             ) : null}
-        </div>
+        </nav>
     </>
 );
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const { theme, setTheme } = useTheme();
     const navigate = useNavigate();
-    const [collapsed, setCollapsed] = useState(false);
+    const location = useLocation();
+    const [collapsed, setCollapsed] = useState<boolean>(() => localStorage.getItem('mv_sidebar_collapsed') === '1');
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [topSearchQuery, setTopSearchQuery] = useState('');
+    const [topSearchOpen, setTopSearchOpen] = useState(false);
     const [quickOpen, setQuickOpen] = useState(false);
+    const [perfilOpen, setPerfilOpen] = useState(false);
     const { me } = useMe();
-
-    const toggleTheme = () => {
-        setTheme(theme === "dark" ? "light" : "dark");
-    };
+    const { theme, setTheme } = useTheme();
+    const solicitudes = useSolicitudesPendientes();
 
     const role = (me as MeResponse | null)?.rol ?? null;
     const canSeeAdmin = role === 'ADMIN';
     const canSeeOps = role === 'ADMIN' || role === 'MV_ADMIN';
+    const isMac = useMemo(() => isMacPlatform(), []);
 
     const quickActions = useMemo(() => {
         const base = [
-            { label: 'Nuevo paquete', hint: '/paquetes/new', path: '/paquetes/new' },
+            { label: 'Nuevo paquete', hint: '/paquetes/new', path: '/paquetes/new', icon: Package, color: 'bg-blue-500/10 text-blue-500' },
         ];
         const opsOnly = [
-            { label: 'Nuevo consolidado', hint: '/consolidados/new', path: '/consolidados/new' },
-            { label: 'Nuevo shipper', hint: '/shippers/new', path: '/shippers/new' },
+            { label: 'Nuevo consolidado', hint: '/consolidados/new', path: '/consolidados/new', icon: ShoppingBag, color: 'bg-emerald-500/10 text-emerald-500' },
+            { label: 'Nuevo shipper', hint: '/shippers/new', path: '/shippers/new', icon: Globe, color: 'bg-amber-500/10 text-amber-500' },
         ];
         return canSeeOps ? [...opsOnly, ...base] : base;
     }, [canSeeOps]);
 
-    const searchItems = useMemo(() => {
+    const searchItems = useMemo<NavItem[]>(() => {
         const base = [
             { label: 'Dashboard', path: '/dashboard' },
             { label: 'Paquetes', path: '/paquetes' },
@@ -249,10 +378,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return searchItems.filter((i) => i.label.toLowerCase().includes(q) || i.path.toLowerCase().includes(q));
     }, [searchItems, searchQuery]);
 
+    const filteredTopSearchItems = useMemo(() => {
+        const q = topSearchQuery.trim().toLowerCase();
+        if (!q) return searchItems.slice(0, 6);
+        return searchItems
+            .filter((i) => i.label.toLowerCase().includes(q) || i.path.toLowerCase().includes(q))
+            .slice(0, 6);
+    }, [searchItems, topSearchQuery]);
+
+    const pathToLabel = useMemo(() => {
+        return new Map(searchItems.map((item) => [item.path, item.label]));
+    }, [searchItems]);
+
+    const breadcrumbs = useMemo(() => {
+        const segments = location.pathname.split('/').filter(Boolean);
+        if (segments.length === 0) return [{ label: 'Inicio', path: '/dashboard' }];
+
+        const crumbs = segments.map((segment, idx) => {
+            const path = `/${segments.slice(0, idx + 1).join('/')}`;
+            const fallbackLabel = segment.charAt(0).toUpperCase() + segment.slice(1);
+            return { path, label: pathToLabel.get(path) ?? fallbackLabel };
+        });
+
+        return crumbs;
+    }, [location.pathname, pathToLabel]);
+
     const go = (path: string) => {
         setSearchOpen(false);
         setQuickOpen(false);
         setSearchQuery('');
+        setTopSearchOpen(false);
+        setTopSearchQuery('');
         navigate(path);
     };
 
@@ -266,36 +422,102 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         : '??';
 
     useEffect(() => {
+        localStorage.setItem('mv_sidebar_collapsed', collapsed ? '1' : '0');
+    }, [collapsed]);
+
+    useEffect(() => {
+        try {
+            localStorage.removeItem('mv_recent_paths');
+        } catch {
+            // ignorar
+        }
+    }, []);
+
+    // Keyboard shortcuts globales
+    useEffect(() => {
+        let lastG = 0;
         const onKeyDown = (e: KeyboardEvent) => {
-            const isMac = navigator.platform.toLowerCase().includes('mac');
+            const target = e.target as HTMLElement | null;
+            const isTyping =
+                target &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.isContentEditable);
+
             const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+            // Cmd/Ctrl+K -> abre búsqueda
             if (cmdOrCtrl && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 setSearchOpen(true);
+                return;
+            }
+            // Cmd/Ctrl+B -> colapsar/expandir sidebar
+            if (cmdOrCtrl && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                setCollapsed((prev) => !prev);
+                return;
             }
             if (e.key === 'Escape') {
                 setSearchOpen(false);
                 setQuickOpen(false);
+                setTopSearchOpen(false);
+                return;
+            }
+
+            if (isTyping) return;
+
+            // C -> abre quick create
+            if (e.key.toLowerCase() === 'c' && !cmdOrCtrl && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                setQuickOpen(true);
+                return;
+            }
+            // G + (D | P | C | S) navegación tipo Linear/Notion
+            if (e.key.toLowerCase() === 'g' && !cmdOrCtrl) {
+                lastG = Date.now();
+                return;
+            }
+            if (Date.now() - lastG < 1500) {
+                const k = e.key.toLowerCase();
+                const map: Record<string, string> = {
+                    d: '/dashboard',
+                    p: '/paquetes',
+                    c: '/consolidados',
+                    s: canSeeOps ? '/shippers' : '/dashboard',
+                };
+                if (map[k]) {
+                    e.preventDefault();
+                    navigate(map[k]);
+                    lastG = 0;
+                }
             }
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
+    }, [isMac, canSeeOps, navigate]);
+
+    const meData = me as MeResponse | null;
 
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans">
             {/* Desktop Sidebar */}
-            <aside className={cn(
-                "hidden md:flex flex-col flex-shrink-0 bg-sidebar-background border-r border-sidebar-border transition-[width] duration-200 ease-out",
-                collapsed ? "w-[52px]" : "w-[240px]"
-            )}>
+            <aside
+                className={cn(
+                    "hidden md:flex flex-col flex-shrink-0 bg-sidebar-background border-r border-sidebar-border transition-[width] duration-200 ease-out",
+                    collapsed ? "w-[56px]" : "w-[240px]",
+                )}
+                aria-label="Barra lateral"
+            >
                 <SidebarContent
                     collapsed={collapsed}
                     onQuickCreate={() => setQuickOpen(true)}
                     onSearchClick={() => setSearchOpen(true)}
                     canSeeAdmin={canSeeAdmin}
                     canSeeOps={canSeeOps}
-                    shipperNombre={role === 'SHIPPER' ? ((me as MeResponse | null)?.shipperNombre ?? null) : null}
+                    canSeeSolicitudes={solicitudes.enabled}
+                    solicitudesPendientes={solicitudes.count}
+                    shipperNombre={role === 'SHIPPER' ? (meData?.shipperNombre ?? null) : null}
                 />
 
                 {/* Sidebar Footer */}
@@ -305,22 +527,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         onClick={() => setCollapsed(!collapsed)}
                         className={cn(
                             "w-full flex items-center gap-2 px-2.5 py-[7px] text-xs text-sidebar-muted cursor-pointer hover:text-sidebar-foreground rounded-lg hover:bg-sidebar-hover transition-colors",
-                            collapsed && "justify-center"
+                            collapsed && "justify-center",
                         )}
+                        title={collapsed ? "Expandir (⌘B)" : "Ocultar (⌘B)"}
                     >
-                        <ChevronLeft className={cn("w-3.5 h-3.5 transition-transform", collapsed && "rotate-180")} />
-                        {!collapsed && <span>Ocultar</span>}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={toggleTheme}
-                        className={cn(
-                            "w-full flex items-center gap-2 px-2.5 py-[7px] text-xs text-sidebar-muted cursor-pointer hover:text-sidebar-foreground rounded-lg hover:bg-sidebar-hover transition-colors",
-                            collapsed && "justify-center"
+                        {collapsed ? (
+                            <PanelLeftOpen className="w-3.5 h-3.5" />
+                        ) : (
+                            <PanelLeftClose className="w-3.5 h-3.5" />
                         )}
-                    >
-                        {theme === 'dark' ? <Moon className="w-4 h-4 opacity-70" /> : <Sun className="w-4 h-4 opacity-70" />}
-                        {!collapsed && <span>{theme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}</span>}
+                        {!collapsed && (
+                            <>
+                                <span className="flex-1 text-left">Ocultar</span>
+                                <kbd className="hidden sm:inline-flex text-[9px] font-mono bg-sidebar-hover/80 border border-sidebar-border px-1 py-0.5 rounded">
+                                    ⌘B
+                                </kbd>
+                            </>
+                        )}
                     </button>
                 </div>
             </aside>
@@ -328,171 +551,356 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden">
                 {/* Topbar */}
-                <header className="h-12 flex items-center justify-between gap-4 px-4 sticky top-0 z-40 flex-shrink-0 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                <header className="h-14 flex items-center justify-between gap-3 px-4 sticky top-0 z-40 flex-shrink-0 border-b border-border/50 bg-background/85 backdrop-blur-xl">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                         {/* Mobile Menu */}
                         <div className="md:hidden shrink-0">
                             <Sheet>
                                 <SheetTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="w-8 h-8 -ml-2">
+                                    <Button variant="ghost" size="icon" className="w-9 h-9 -ml-1.5">
                                         <Menu className="w-4 h-4" />
                                     </Button>
                                 </SheetTrigger>
-                                <SheetContent side="left" className="p-0 w-[240px] border-r border-sidebar-border bg-sidebar-background">
-                                    <SheetTitle className="sr-only">Menu</SheetTitle>
-                                    <SheetDescription className="sr-only">Main Navigation</SheetDescription>
+                                <SheetContent
+                                    side="left"
+                                    className="p-0 w-[270px] border-r border-sidebar-border bg-sidebar-background"
+                                >
+                                    <SheetTitle className="sr-only">Menú</SheetTitle>
+                                    <SheetDescription className="sr-only">Navegación principal</SheetDescription>
                                     <div className="h-full flex flex-col">
                                         <SidebarContent
                                             onQuickCreate={() => setQuickOpen(true)}
                                             onSearchClick={() => setSearchOpen(true)}
                                             canSeeAdmin={canSeeAdmin}
                                             canSeeOps={canSeeOps}
-                                            shipperNombre={role === 'SHIPPER' ? ((me as MeResponse | null)?.shipperNombre ?? null) : null}
+                                            canSeeSolicitudes={solicitudes.enabled}
+                                            solicitudesPendientes={solicitudes.count}
+                                            shipperNombre={role === 'SHIPPER' ? (meData?.shipperNombre ?? null) : null}
                                         />
-                                        <div className="p-3 border-t border-sidebar-border mt-auto">
-                                            <button
-                                                type="button"
-                                                onClick={toggleTheme}
-                                                className="w-full flex items-center gap-2 px-2.5 py-2 text-sm text-sidebar-muted cursor-pointer hover:text-sidebar-foreground rounded-lg hover:bg-sidebar-hover transition-colors"
-                                            >
-                                                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                                                <span>{theme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}</span>
-                                            </button>
-                                        </div>
                                     </div>
                                 </SheetContent>
                             </Sheet>
                         </div>
 
-                        {/* Search */}
-                        <div className="flex-1 max-w-lg">
-                            <div className="relative group">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-muted-foreground transition-colors" />
-                                <Input
-                                    type="text"
-                                    placeholder="Buscar paquetes, navegar..."
-                                    className="pl-9 pr-16 h-8 text-[13px] cursor-pointer bg-muted/30 border-border/30 rounded-lg hover:bg-muted/50 hover:border-border/50 transition-all focus-visible:ring-0 focus-visible:bg-background focus-visible:border-border/60"
-                                    readOnly
-                                    onClick={() => setSearchOpen(true)}
-                                />
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                    <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded-md border border-border/40 bg-muted/50 px-1.5 font-mono text-[9px] font-medium text-muted-foreground/60 sm:flex">
-                                        <span className="text-[10px]">⌘</span>K
-                                    </kbd>
+                        {/* Breadcrumbs (siempre visibles) */}
+                        <nav
+                            aria-label="Migas de pan"
+                            className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground min-w-0 flex-shrink"
+                        >
+                            {breadcrumbs.map((crumb, idx) => (
+                                <div key={crumb.path + idx} className="inline-flex items-center gap-1 min-w-0">
+                                    {idx > 0 && <ChevronRight className="h-3 w-3 opacity-60 shrink-0" />}
+                                    <button
+                                        type="button"
+                                        onClick={() => go(crumb.path)}
+                                        className={cn(
+                                            "hover:text-foreground transition-colors truncate max-w-[140px]",
+                                            idx === breadcrumbs.length - 1 && "text-foreground font-medium",
+                                        )}
+                                    >
+                                        {crumb.label}
+                                    </button>
                                 </div>
+                            ))}
+                        </nav>
+                    </div>
+
+                    {/* Search */}
+                    <div className="hidden lg:block flex-1 max-w-md">
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-muted-foreground transition-colors" />
+                            <Input
+                                type="text"
+                                placeholder="Buscar paquetes, consolidados…"
+                                value={topSearchQuery}
+                                onChange={(e) => {
+                                    setTopSearchQuery(e.target.value);
+                                    setTopSearchOpen(true);
+                                }}
+                                onFocus={() => setTopSearchOpen(true)}
+                                onBlur={() => setTimeout(() => setTopSearchOpen(false), 120)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && filteredTopSearchItems[0]) {
+                                        e.preventDefault();
+                                        go(filteredTopSearchItems[0].path);
+                                    }
+                                }}
+                                className="pl-9 pr-16 h-9 text-[13px] bg-muted/40 border-border/40 rounded-lg hover:bg-muted/60 transition-all focus-visible:ring-1 focus-visible:ring-primary/30 focus-visible:bg-background"
+                            />
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                                <kbd className="hidden h-5 select-none items-center gap-0.5 rounded-md border border-border/50 bg-muted/60 px-1.5 font-mono text-[9px] font-medium text-muted-foreground sm:flex">
+                                    <span className="text-[10px]">{isMac ? '⌘' : 'Ctrl'}</span>K
+                                </kbd>
                             </div>
+                            {topSearchOpen && filteredTopSearchItems.length > 0 ? (
+                                <div className="absolute left-0 right-0 top-11 z-50 rounded-lg border border-border bg-popover shadow-lg overflow-hidden">
+                                    {filteredTopSearchItems.map((item) => (
+                                        <button
+                                            key={item.path}
+                                            type="button"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => go(item.path)}
+                                            className="w-full px-3 py-2 text-left hover:bg-accent transition-colors flex items-center justify-between gap-3"
+                                        >
+                                            <div>
+                                                <div className="text-sm font-medium text-foreground">{item.label}</div>
+                                                <div className="text-[11px] text-muted-foreground font-mono">{item.path}</div>
+                                            </div>
+                                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1 ml-auto">
-                        {/* Notifications */}
+                    {/* Acciones derecha */}
+                    <div className="flex items-center gap-1 shrink-0">
+                        {/* Búsqueda mobile (icono) */}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
-                            aria-label="Notificaciones"
+                            className="lg:hidden h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground"
+                            aria-label="Buscar"
+                            onClick={() => setSearchOpen(true)}
                         >
-                            <Bell className="h-4 w-4" />
+                            <Search className="h-4 w-4" />
                         </Button>
 
-                        {/* Quick Create */}
+                        {/* Notificaciones */}
+                        <NotificacionesBell />
+
+                        {/* Crear (atajo C) */}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
+                            className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground"
                             onClick={() => setQuickOpen(true)}
                             aria-label="Crear"
+                            title="Crear (C)"
                         >
-                            <PlusCircle className="h-4 w-4" />
+                            <Plus className="h-4 w-4" />
                         </Button>
+
+                        <Separator orientation="vertical" className="h-6 mx-1" />
 
                         {/* User Menu */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button
                                     type="button"
-                                    className="h-8 w-8 rounded-lg p-0 overflow-hidden hover:ring-2 hover:ring-primary/20 transition-all ml-1"
+                                    className="h-9 px-1 inline-flex items-center gap-2 rounded-lg hover:bg-accent transition-colors"
                                     aria-label="Menú de usuario"
                                 >
-                                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-[11px] font-bold text-primary-foreground">
+                                    <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-sm">
                                         {initials}
                                     </div>
+                                    <span className="hidden xl:inline text-xs text-muted-foreground max-w-[100px] truncate">
+                                        {me?.username}
+                                    </span>
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-64 rounded-xl border-border/50 p-0 overflow-hidden">
+                            <DropdownMenuContent
+                                align="end"
+                                className="w-72 rounded-xl border-border/60 p-0 overflow-hidden shadow-lg"
+                            >
                                 {me && (
                                     <>
-                                        <div className="px-4 py-4 bg-gradient-to-b from-muted/40 to-transparent">
+                                        {/* Header de cuenta */}
+                                        <div className="px-4 py-4 bg-gradient-to-b from-muted/50 to-transparent">
                                             <div className="flex items-start gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0 shadow-sm">
+                                                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0 shadow-sm">
                                                     {initials}
                                                 </div>
                                                 <div className="overflow-hidden flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-foreground truncate">{me.username}</p>
-                                                    {(me as MeResponse).email && (
-                                                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{(me as MeResponse).email}</p>
+                                                    <p className="text-sm font-semibold text-foreground truncate">
+                                                        {me.username}
+                                                    </p>
+                                                    {meData?.email && (
+                                                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                                            {meData.email}
+                                                        </p>
                                                     )}
                                                     {role && (
-                                                        <Badge variant="role" className="mt-2">{role}</Badge>
+                                                        <Badge variant="role" className="mt-2 text-[9px] uppercase tracking-wider">
+                                                            <Shield className="h-2.5 w-2.5 mr-1" />
+                                                            {role}
+                                                        </Badge>
                                                     )}
                                                 </div>
                                             </div>
+                                            {meData?.shipperNombre && role === 'SHIPPER' && (
+                                                <div className="mt-3 rounded-lg bg-muted/40 px-2.5 py-1.5 flex items-center gap-2">
+                                                    <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                                                    <span className="text-[11px] text-muted-foreground truncate">
+                                                        {meData.shipperNombre}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
-                                        <DropdownMenuSeparator />
+
+                                        <DropdownMenuSeparator className="my-0" />
                                     </>
                                 )}
+
+                                {/* Sección Apariencia */}
+                                <div className="p-1">
+                                    <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Apariencia
+                                    </DropdownMenuLabel>
+                                    <div className="grid grid-cols-3 gap-1 px-1 pb-1">
+                                        <ThemeOption
+                                            icon={<Sun className="h-3.5 w-3.5" />}
+                                            label="Claro"
+                                            active={theme === 'light'}
+                                            onClick={() => setTheme('light')}
+                                        />
+                                        <ThemeOption
+                                            icon={<Moon className="h-3.5 w-3.5" />}
+                                            label="Oscuro"
+                                            active={theme === 'dark'}
+                                            onClick={() => setTheme('dark')}
+                                        />
+                                        <ThemeOption
+                                            icon={<Monitor className="h-3.5 w-3.5" />}
+                                            label="Sistema"
+                                            active={theme === 'system'}
+                                            onClick={() => setTheme('system')}
+                                        />
+                                    </div>
+                                </div>
+
+                                <DropdownMenuSeparator className="my-0" />
+
+                                {/* Sección acciones */}
+                                <div className="p-1">
+                                    <DropdownMenuItem
+                                        onClick={() => setPerfilOpen(true)}
+                                        className="cursor-pointer text-[13px]"
+                                    >
+                                        <UserIcon className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                                        Mi perfil
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => go('/dashboard')}
+                                        className="cursor-pointer text-[13px]"
+                                    >
+                                        <LayoutDashboard className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                                        Mi panel
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => setSearchOpen(true)}
+                                        className="cursor-pointer text-[13px]"
+                                    >
+                                        <CommandIcon className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                                        Buscar
+                                        <kbd className="ml-auto text-[9px] font-mono opacity-60">
+                                            {isMac ? '⌘K' : 'Ctrl K'}
+                                        </kbd>
+                                    </DropdownMenuItem>
+                                    {canSeeAdmin && (
+                                        <DropdownMenuItem
+                                            onClick={() => go('/usuarios')}
+                                            className="cursor-pointer text-[13px]"
+                                        >
+                                            <Settings className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                                            Configuración
+                                        </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuItem
+                                        onClick={() => window.open('https://github.com/BackSet/mv_services', '_blank')}
+                                        className="cursor-pointer text-[13px]"
+                                    >
+                                        <HelpCircle className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                                        Ayuda y documentación
+                                    </DropdownMenuItem>
+                                </div>
+
+                                <DropdownMenuSeparator className="my-0" />
+
                                 <div className="p-1">
                                     <DropdownMenuItem
                                         onClick={logout}
-                                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer text-[13px]"
                                     >
-                                        <LogOut className="w-4 h-4 mr-2" />
+                                        <LogOut className="w-3.5 h-3.5 mr-2" />
                                         Cerrar sesión
                                     </DropdownMenuItem>
+                                </div>
+
+                                <div className="px-3 py-2 border-t border-border/60 text-[10px] text-muted-foreground/70 text-center">
+                                    MV Services · v1.0
                                 </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 </header>
 
-                {/* Search dialog */}
+                {/* Search dialog (cmd+k) */}
                 <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-                    <DialogContent className="max-w-xl">
-                        <DialogHeader>
-                            <DialogTitle>Buscar</DialogTitle>
-                            <DialogDescription>Navega rápido a cualquier sección.</DialogDescription>
+                    <DialogContent className="max-w-xl gap-3 p-0 overflow-hidden">
+                        <DialogHeader className="px-4 pt-4">
+                            <DialogTitle className="flex items-center gap-2 text-base">
+                                <Search className="h-4 w-4 text-muted-foreground" />
+                                Buscar y navegar
+                            </DialogTitle>
+                            <DialogDescription className="text-xs">
+                                Escribe para filtrar o usa las flechas para navegar.
+                            </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-3">
+                        <div className="px-4 space-y-3 pb-2">
                             <input
                                 autoFocus
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"
                                 placeholder="Escribe para buscar…"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && filteredSearchItems[0]) {
+                                        e.preventDefault();
+                                        go(filteredSearchItems[0].path);
+                                    }
+                                }}
                             />
-                            <div className="max-h-[280px] overflow-y-auto rounded-md border border-border/60">
+                            <div className="max-h-[320px] overflow-y-auto rounded-md border border-border/60">
                                 {filteredSearchItems.length ? (
                                     <div className="divide-y divide-border/40">
-                                        {filteredSearchItems.map((i) => (
+                                        {filteredSearchItems.map((i, idx) => (
                                             <button
                                                 key={i.path}
                                                 type="button"
                                                 onClick={() => go(i.path)}
-                                                className="w-full text-left px-3 py-2 hover:bg-accent transition-colors"
+                                                className="w-full text-left px-3 py-2 hover:bg-accent transition-colors flex items-center justify-between"
                                             >
-                                                <div className="text-sm font-medium text-foreground">{i.label}</div>
-                                                <div className="text-xs text-muted-foreground">{i.path}</div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-foreground">{i.label}</div>
+                                                    <div className="text-[11px] text-muted-foreground font-mono">{i.path}</div>
+                                                </div>
+                                                {idx === 0 && (
+                                                    <kbd className="text-[9px] font-mono opacity-60 bg-muted px-1.5 py-0.5 rounded">
+                                                        ↵
+                                                    </kbd>
+                                                )}
                                             </button>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="p-3 text-sm text-muted-foreground">Sin resultados.</div>
+                                    <div className="p-6 text-center text-sm text-muted-foreground">
+                                        Sin resultados para "{searchQuery}"
+                                    </div>
                                 )}
                             </div>
                         </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setSearchOpen(false)}>Cerrar</Button>
-                        </DialogFooter>
+                        <div className="flex items-center justify-between px-4 py-2 border-t border-border/60 bg-muted/30 text-[10px] text-muted-foreground">
+                            <span className="flex items-center gap-2">
+                                <kbd className="font-mono bg-background border border-border px-1 rounded">↵</kbd>
+                                seleccionar
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <kbd className="font-mono bg-background border border-border px-1 rounded">esc</kbd>
+                                cerrar
+                            </span>
+                        </div>
                     </DialogContent>
                 </Dialog>
 
@@ -500,21 +908,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
                     <DialogContent className="max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Crear</DialogTitle>
-                            <DialogDescription>Accesos rápidos para registrar información.</DialogDescription>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-primary" />
+                                Crear nuevo
+                            </DialogTitle>
+                            <DialogDescription>
+                                Accesos rápidos para registrar información.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-2">
-                            {quickActions.map((a) => (
-                                <button
-                                    key={a.path}
-                                    type="button"
-                                    onClick={() => go(a.path)}
-                                    className="w-full flex items-center justify-between rounded-md border border-border/60 bg-background px-3 py-2 text-sm hover:bg-accent transition-colors"
-                                >
-                                    <span className="font-medium text-foreground">{a.label}</span>
-                                    <span className="text-xs text-muted-foreground">{a.hint}</span>
-                                </button>
-                            ))}
+                            {quickActions.map((a) => {
+                                const Icon = a.icon;
+                                return (
+                                    <button
+                                        key={a.path}
+                                        type="button"
+                                        onClick={() => go(a.path)}
+                                        className="w-full flex items-center gap-3 rounded-lg border border-border/60 bg-background px-3 py-2.5 hover:bg-accent hover:border-border transition-all group"
+                                    >
+                                        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg shrink-0", a.color)}>
+                                            <Icon className="h-4 w-4" />
+                                        </span>
+                                        <div className="flex-1 min-w-0 text-left">
+                                            <div className="text-sm font-medium text-foreground">{a.label}</div>
+                                            <div className="text-[11px] text-muted-foreground font-mono truncate">{a.hint}</div>
+                                        </div>
+                                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </button>
+                                );
+                            })}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setQuickOpen(false)}>Cerrar</Button>
@@ -522,11 +944,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </DialogContent>
                 </Dialog>
 
+                {/* Mi perfil */}
+                <MiPerfilDialog open={perfilOpen} onOpenChange={setPerfilOpen} />
+
                 {/* Page Content */}
                 <div className="flex-1 overflow-y-auto">
                     {children}
                 </div>
             </main>
         </div>
+    );
+}
+
+function ThemeOption({
+    icon,
+    label,
+    active,
+    onClick,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                "flex flex-col items-center justify-center gap-1 rounded-md py-2 px-1 text-[10px] font-medium transition-colors border",
+                active
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-foreground",
+            )}
+            aria-pressed={active}
+        >
+            {icon}
+            {label}
+        </button>
     );
 }

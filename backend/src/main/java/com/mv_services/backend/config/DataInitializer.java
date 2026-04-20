@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,6 +47,10 @@ public class DataInitializer {
             basePermisos.put("consolidados.cerrar", "Cerrar consolidados");
             basePermisos.put("consolidados.delete", "Eliminar consolidados");
 
+            basePermisos.put("shippers.read", "Ver shippers");
+            basePermisos.put("shippers.create", "Crear shippers");
+            basePermisos.put("shippers.update", "Actualizar shippers (datos, teléfonos, direcciones)");
+            basePermisos.put("shippers.delete", "Eliminar shippers");
             basePermisos.put("shippers.aprobar", "Aprobar/rechazar solicitudes de registro de shippers");
 
             for (var e : basePermisos.entrySet()) {
@@ -57,22 +62,10 @@ public class DataInitializer {
                 }
             }
 
-            // 2) Roles base
+            // 2) Roles base (canónicos: ADMIN, OPERARIO, SHIPPER).
             Rol adminRole = rolRepository.findByNombre("ADMIN").orElseGet(() -> {
                 Rol r = new Rol();
                 r.setNombre("ADMIN");
-                return rolRepository.save(r);
-            });
-
-            Rol shipperRole = rolRepository.findByNombre("SHIPPER").orElseGet(() -> {
-                Rol r = new Rol();
-                r.setNombre("SHIPPER");
-                return rolRepository.save(r);
-            });
-
-            Rol mvAdminRole = rolRepository.findByNombre("MV_ADMIN").orElseGet(() -> {
-                Rol r = new Rol();
-                r.setNombre("MV_ADMIN");
                 return rolRepository.save(r);
             });
 
@@ -82,57 +75,46 @@ public class DataInitializer {
                 return rolRepository.save(r);
             });
 
-            // 3) Asignación de permisos por rol
-            Set<Permiso> allPermisos = new LinkedHashSet<>(permisoRepository.findAll());
-            adminRole.setPermisos(allPermisos);
+            Rol shipperRole = rolRepository.findByNombre("SHIPPER").orElseGet(() -> {
+                Rol r = new Rol();
+                r.setNombre("SHIPPER");
+                return rolRepository.save(r);
+            });
+
+            // 3) Asignación de permisos por rol.
+            // ADMIN: todos los permisos disponibles en el sistema.
+            adminRole.setPermisos(new LinkedHashSet<>(permisoRepository.findAll()));
             rolRepository.save(adminRole);
 
-            Set<Permiso> shipperPermisos = new LinkedHashSet<>();
-            permisoRepository.findByNombre("paquetes.read").ifPresent(shipperPermisos::add);
-            permisoRepository.findByNombre("paquetes.create_minimo").ifPresent(shipperPermisos::add);
-            shipperRole.setPermisos(shipperPermisos);
-            rolRepository.save(shipperRole);
-
-            Set<Permiso> mvAdminPermisos = new LinkedHashSet<>();
-            // Paquetes
-            permisoRepository.findByNombre("paquetes.read").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("paquetes.create_minimo").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("paquetes.update").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("paquetes.delete").ifPresent(mvAdminPermisos::add);
-            // Consolidados
-            permisoRepository.findByNombre("consolidados.read").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("consolidados.create").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("consolidados.add_paquete").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("consolidados.cerrar").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("consolidados.delete").ifPresent(mvAdminPermisos::add);
-            permisoRepository.findByNombre("shippers.aprobar").ifPresent(mvAdminPermisos::add);
-            mvAdminRole.setPermisos(mvAdminPermisos);
-            rolRepository.save(mvAdminRole);
-
-            // OPERARIO: paquetes.read, paquetes.update, paquetes.create_minimo, consolidados.read, consolidados.add_paquete, consolidados.cerrar
-            Set<Permiso> operarioPermisos = new LinkedHashSet<>();
-            permisoRepository.findByNombre("paquetes.read").ifPresent(operarioPermisos::add);
-            permisoRepository.findByNombre("paquetes.update").ifPresent(operarioPermisos::add);
-            permisoRepository.findByNombre("paquetes.create_minimo").ifPresent(operarioPermisos::add);
-            permisoRepository.findByNombre("consolidados.read").ifPresent(operarioPermisos::add);
-            permisoRepository.findByNombre("consolidados.add_paquete").ifPresent(operarioPermisos::add);
-            permisoRepository.findByNombre("consolidados.cerrar").ifPresent(operarioPermisos::add);
-            permisoRepository.findByNombre("shippers.aprobar").ifPresent(operarioPermisos::add);
-            operarioRole.setPermisos(operarioPermisos);
+            // OPERARIO: gestión completa de paquetes, consolidados y shippers.
+            operarioRole.setPermisos(resolvePermisos(List.of(
+                    "paquetes.read", "paquetes.create_minimo", "paquetes.update", "paquetes.delete",
+                    "consolidados.read", "consolidados.create", "consolidados.add_paquete",
+                    "consolidados.cerrar", "consolidados.delete",
+                    "shippers.read", "shippers.create", "shippers.update", "shippers.delete",
+                    "shippers.aprobar"
+            )));
             rolRepository.save(operarioRole);
 
-            // Create User ADMIN if not exists
+            // SHIPPER: solo gestión de sus propios paquetes (filtro por shipperId en controllers).
+            shipperRole.setPermisos(resolvePermisos(List.of(
+                    "paquetes.read",
+                    "paquetes.create_minimo",
+                    "paquetes.update"
+            )));
+            rolRepository.save(shipperRole);
+
+            // 4) Usuario ADMIN por defecto (con autocorrección de contraseña en dev).
             if (usuarioRepository.findByUsername("admin").isEmpty()) {
                 Usuario admin = new Usuario();
                 admin.setUsername("admin");
-                admin.setPassword(passwordEncoder.encode("admin123")); // Default password
+                admin.setPassword(passwordEncoder.encode("admin123"));
                 admin.setEmail("admin@ecubox.com");
                 admin.setRol(adminRole);
                 admin.setActivo(true);
                 usuarioRepository.save(admin);
                 System.out.println("Usuario ADMIN creado: admin / admin123");
             } else {
-                // Keep local/dev admin credentials aligned with documented defaults.
                 usuarioRepository.findByUsername("admin").ifPresent(admin -> {
                     boolean matches = passwordEncoder.matches("admin123", admin.getPassword());
                     if (!matches) {
@@ -147,7 +129,7 @@ public class DataInitializer {
                 });
             }
 
-            // Create User OPERARIO if not exists
+            // 5) Usuario OPERARIO por defecto (solo en bootstrap inicial).
             if (usuarioRepository.findByUsername("operario").isEmpty()) {
                 Usuario operario = new Usuario();
                 operario.setUsername("operario");
@@ -158,7 +140,14 @@ public class DataInitializer {
                 usuarioRepository.save(operario);
                 System.out.println("Usuario OPERARIO creado: operario / operario123");
             }
-
         };
+    }
+
+    private Set<Permiso> resolvePermisos(List<String> nombres) {
+        Set<Permiso> result = new LinkedHashSet<>();
+        for (String nombre : nombres) {
+            permisoRepository.findByNombre(nombre).ifPresent(result::add);
+        }
+        return result;
     }
 }

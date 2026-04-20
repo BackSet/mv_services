@@ -90,7 +90,8 @@ export default function PaqueteEditPage() {
   });
   const guiaInputRef = useRef<HTMLInputElement | null>(null);
 
-  const canPickShipper = me?.rol === 'ADMIN' || me?.rol === 'MV_ADMIN' || (me?.permisos?.includes('paquetes.update') ?? false);
+  // SHIPPER no puede elegir shipper (siempre es el suyo). Operario/Admin con permiso sí.
+  const canPickShipper = me?.rol !== 'SHIPPER' && (me?.permisos?.includes('paquetes.update') ?? false);
 
   const load = async () => {
     if (!id) return;

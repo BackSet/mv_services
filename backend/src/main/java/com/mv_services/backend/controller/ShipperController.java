@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/shippers")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN') or hasAuthority('paquetes.read') or hasAuthority('paquetes.update')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.read') or hasAuthority('paquetes.read') or hasAuthority('paquetes.update')")
 public class ShipperController {
 
     private final ShipperRepository shipperRepository;
@@ -38,7 +38,7 @@ public class ShipperController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.create')")
     public Shipper create(@RequestBody Shipper shipper) {
         shipper.setTelefonos(null);
         shipper.setDirecciones(null);
@@ -53,7 +53,7 @@ public class ShipperController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     public ResponseEntity<Shipper> update(@PathVariable Long id, @RequestBody Shipper details) {
         return shipperRepository.findById(id)
                 .map(shipper -> {
@@ -66,7 +66,7 @@ public class ShipperController {
     }
 
     @PostMapping("/{id}/telefonos")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     @Transactional
     public ResponseEntity<Telefono> addTelefono(@PathVariable Long id, @RequestBody Telefono telefono) {
         return shipperRepository.findById(id)
@@ -85,7 +85,7 @@ public class ShipperController {
     }
 
     @PostMapping("/{id}/direcciones")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     public ResponseEntity<DireccionShipper> addDireccion(@PathVariable Long id, @RequestBody DireccionShipper direccion) {
         return shipperRepository.findById(id)
                 .map(shipper -> {
@@ -102,7 +102,7 @@ public class ShipperController {
     }
 
     @PutMapping("/{id}/direcciones/{direccionId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     public ResponseEntity<DireccionShipper> updateDireccion(
             @PathVariable Long id,
             @PathVariable Long direccionId,
@@ -121,7 +121,7 @@ public class ShipperController {
     }
 
     @PutMapping("/{id}/telefonos/{telefonoId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     @Transactional
     public ResponseEntity<Telefono> updateTelefono(
             @PathVariable Long id,
@@ -144,7 +144,7 @@ public class ShipperController {
     }
 
     @DeleteMapping("/{id}/telefonos/{telefonoId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     public ResponseEntity<Void> deleteTelefono(@PathVariable Long id, @PathVariable Long telefonoId) {
         return telefonoRepository.findByIdAndShipperId(telefonoId, id)
                 .map(t -> {
@@ -155,7 +155,7 @@ public class ShipperController {
     }
 
     @DeleteMapping("/{id}/direcciones/{direccionId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.update')")
     public ResponseEntity<Void> deleteDireccion(@PathVariable Long id, @PathVariable Long direccionId) {
         return direccionShipperRepository.findByIdAndShipperId(direccionId, id)
                 .map(d -> {
@@ -166,7 +166,7 @@ public class ShipperController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('shippers.delete')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (shipperRepository.existsById(id)) {
             shipperRepository.deleteById(id);

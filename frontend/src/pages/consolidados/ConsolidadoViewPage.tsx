@@ -67,9 +67,9 @@ export default function ConsolidadoViewPage() {
   const navigate = useNavigate();
   const consolidadoId = id ? Number(id) : null;
   const { me } = useMe();
-  const role = me?.rol ?? null;
-  const canEdit = role === 'ADMIN' || role === 'MV_ADMIN' || (me?.permisos?.includes('consolidados.add_paquete') ?? false);
-  const canDelete = role === 'ADMIN' || role === 'MV_ADMIN' || (me?.permisos?.includes('consolidados.delete') ?? false);
+  const permisos = me?.permisos ?? [];
+  const canEdit = permisos.includes('consolidados.add_paquete');
+  const canDelete = permisos.includes('consolidados.delete');
 
   const [row, setRow] = useState<Consolidado | null>(null);
   const [loading, setLoading] = useState(true);

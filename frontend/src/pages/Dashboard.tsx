@@ -505,6 +505,13 @@ function DashboardShipper() {
 export default function Dashboard() {
   const { me } = useMe();
   const role = me?.rol ?? null;
-  const canSeeOps = role === 'ADMIN' || role === 'MV_ADMIN';
+  const permisos = me?.permisos ?? [];
+  // SHIPPER siempre ve su panel; cualquiera con permisos operativos sobre paquetes/consolidados/shippers ve el panel ops.
+  const isShipperRole = role === 'SHIPPER';
+  const canSeeOps =
+    !isShipperRole &&
+    (permisos.includes('paquetes.read') ||
+      permisos.includes('consolidados.read') ||
+      permisos.includes('shippers.read'));
   return canSeeOps ? <DashboardOps /> : <DashboardShipper />;
 }

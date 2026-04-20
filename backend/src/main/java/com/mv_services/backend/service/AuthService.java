@@ -80,8 +80,9 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        Rol rol = rolRepository.findByNombre("DESTINATARIO_FINAL")
-                .orElseGet(() -> rolRepository.save(Rol.builder().nombre("DESTINATARIO_FINAL").build()));
+        // Rol por defecto al registrarse un cliente: SHIPPER (solo gestiona sus paquetes).
+        Rol rol = rolRepository.findByNombre("SHIPPER")
+                .orElseGet(() -> rolRepository.save(Rol.builder().nombre("SHIPPER").build()));
 
         Usuario usuario = Usuario.builder()
                 .username(request.getUsername())

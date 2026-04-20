@@ -66,9 +66,9 @@ export default function ConsolidadosListPage() {
   const navigate = useNavigate();
   const { data: rows, loading, error, refresh } = useConsolidadosList();
   const { me } = useMe();
-  const role = me?.rol ?? null;
-  const canEdit = role === 'ADMIN' || role === 'MV_ADMIN' || (me?.permisos?.includes('consolidados.create') ?? false);
-  const canDeleteConsolidado = role === 'ADMIN' || role === 'MV_ADMIN' || (me?.permisos?.includes('consolidados.delete') ?? false);
+  const permisos = me?.permisos ?? [];
+  const canEdit = permisos.includes('consolidados.create');
+  const canDeleteConsolidado = permisos.includes('consolidados.delete');
 
   const initialPrefs = useMemo(() => readPrefs(), []);
   const [search, setSearch] = useState(initialPrefs.search ?? '');

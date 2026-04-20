@@ -55,10 +55,10 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           } />
-          <Route path="/paquetes" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><PaquetesListPage /></ProtectedRoute>} />
-          <Route path="/paquetes/new" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><PaqueteNewPage /></ProtectedRoute>} />
-          <Route path="/paquetes/:id" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><PaqueteViewPage /></ProtectedRoute>} />
-          <Route path="/paquetes/:id/edit" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><PaqueteEditPage /></ProtectedRoute>} />
+          <Route path="/paquetes" element={<ProtectedRoute allowedPermissions={["paquetes.read"]}><PaquetesListPage /></ProtectedRoute>} />
+          <Route path="/paquetes/new" element={<ProtectedRoute allowedPermissions={["paquetes.create_minimo"]}><PaqueteNewPage /></ProtectedRoute>} />
+          <Route path="/paquetes/:id" element={<ProtectedRoute allowedPermissions={["paquetes.read"]}><PaqueteViewPage /></ProtectedRoute>} />
+          <Route path="/paquetes/:id/edit" element={<ProtectedRoute allowedPermissions={["paquetes.update"]}><PaqueteEditPage /></ProtectedRoute>} />
           <Route path="/roles" element={<ProtectedRoute allowedRoles={["ADMIN"]}><RolesListPage /></ProtectedRoute>} />
           <Route path="/roles/new" element={<ProtectedRoute allowedRoles={["ADMIN"]}><RolNewPage /></ProtectedRoute>} />
           <Route path="/roles/:id" element={<ProtectedRoute allowedRoles={["ADMIN"]}><RolViewPage /></ProtectedRoute>} />
@@ -74,13 +74,13 @@ function App() {
           <Route path="/permisos/:id" element={<ProtectedRoute allowedRoles={["ADMIN"]}><PermisoViewPage /></ProtectedRoute>} />
           <Route path="/permisos/:id/edit" element={<ProtectedRoute allowedRoles={["ADMIN"]}><PermisoEditPage /></ProtectedRoute>} />
 
-          <Route path="/shippers" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN"]}><ShippersListPage /></ProtectedRoute>} />
-          <Route path="/shippers/new" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN"]}><ShipperNewPage /></ProtectedRoute>} />
-          <Route path="/shippers/:id" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN"]}><ShipperViewPage /></ProtectedRoute>} />
-          <Route path="/shippers/:id/edit" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN"]}><ShipperEditPage /></ProtectedRoute>} />
-          <Route path="/consolidados" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><ConsolidadosListPage /></ProtectedRoute>} />
-          <Route path="/consolidados/new" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN"]}><ConsolidadoNewPage /></ProtectedRoute>} />
-          <Route path="/consolidados/:id" element={<ProtectedRoute allowedRoles={["ADMIN", "MV_ADMIN", "SHIPPER"]}><ConsolidadoViewPage /></ProtectedRoute>} />
+          <Route path="/shippers" element={<ProtectedRoute allowedPermissions={["shippers.read"]}><ShippersListPage /></ProtectedRoute>} />
+          <Route path="/shippers/new" element={<ProtectedRoute allowedPermissions={["shippers.create"]}><ShipperNewPage /></ProtectedRoute>} />
+          <Route path="/shippers/:id" element={<ProtectedRoute allowedPermissions={["shippers.read"]}><ShipperViewPage /></ProtectedRoute>} />
+          <Route path="/shippers/:id/edit" element={<ProtectedRoute allowedPermissions={["shippers.update"]}><ShipperEditPage /></ProtectedRoute>} />
+          <Route path="/consolidados" element={<ProtectedRoute allowedPermissions={["consolidados.read"]}><ConsolidadosListPage /></ProtectedRoute>} />
+          <Route path="/consolidados/new" element={<ProtectedRoute allowedPermissions={["consolidados.create"]}><ConsolidadoNewPage /></ProtectedRoute>} />
+          <Route path="/consolidados/:id" element={<ProtectedRoute allowedPermissions={["consolidados.read"]}><ConsolidadoViewPage /></ProtectedRoute>} />
           <Route path="/solicitudes-shippers" element={<ProtectedRoute allowedPermissions={["shippers.aprobar"]}><SolicitudesShippersPage /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

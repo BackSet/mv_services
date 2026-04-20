@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/paquetes")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN','SHIPPER') or hasAuthority('paquetes.read') or hasAuthority('paquetes.update') or hasAuthority('paquetes.delete')")
+@PreAuthorize("hasRole('ADMIN') or hasRole('SHIPPER') or hasAuthority('paquetes.read') or hasAuthority('paquetes.create_minimo') or hasAuthority('paquetes.update') or hasAuthority('paquetes.delete')")
 public class PaqueteController {
 
     private final PaqueteRepository paqueteRepository;
@@ -146,7 +146,7 @@ public class PaqueteController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN','SHIPPER') or hasAuthority('paquetes.update')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SHIPPER') or hasAuthority('paquetes.update')")
     public ResponseEntity<Paquete> updatePaquete(@PathVariable Long id, @RequestBody Paquete paqueteDetails) {
         var u = currentUserService.getCurrentUser();
         boolean isShipper = currentUserService.isRole("SHIPPER");
@@ -184,7 +184,7 @@ public class PaqueteController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN','SHIPPER') or hasAuthority('paquetes.delete')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SHIPPER') or hasAuthority('paquetes.delete')")
     public ResponseEntity<Void> deletePaquete(@PathVariable Long id) {
         if (currentUserService.isRole("SHIPPER")) {
             var u = currentUserService.getCurrentUser();

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/consolidados")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN','SHIPPER') or hasAuthority('consolidados.read') or hasAuthority('consolidados.add_paquete')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.read')")
 public class ConsolidadoController {
 
     private final ConsolidadoRepository consolidadoRepository;
@@ -80,7 +80,7 @@ public class ConsolidadoController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.create')")
     public Consolidado create(@RequestBody(required = false) Consolidado consolidado) {
         Consolidado nuevo = new Consolidado();
         if (consolidado != null) {
@@ -92,21 +92,21 @@ public class ConsolidadoController {
     }
 
     @PostMapping("/{id}/paquetes/{paqueteId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN') or hasAuthority('consolidados.add_paquete')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.add_paquete')")
     public ResponseEntity<Consolidado> addPaquete(@PathVariable Long id, @PathVariable Long paqueteId) {
         Consolidado consolidado = consolidadoOpsService.addPaquete(id, paqueteId);
         return ResponseEntity.ok(consolidado);
     }
 
     @DeleteMapping("/{id}/paquetes/{paqueteId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN') or hasAuthority('consolidados.add_paquete')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.add_paquete')")
     public ResponseEntity<Consolidado> removePaquete(@PathVariable Long id, @PathVariable Long paqueteId) {
         Consolidado consolidado = consolidadoOpsService.removePaquete(id, paqueteId);
         return ResponseEntity.ok(consolidado);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.create')")
     public ResponseEntity<Consolidado> update(@PathVariable Long id, @RequestBody Consolidado details) {
         return consolidadoRepository.findById(id)
                 .map(c -> {
@@ -120,7 +120,7 @@ public class ConsolidadoController {
     }
 
     @PutMapping("/{id}/abrir")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.cerrar')")
     public ResponseEntity<Consolidado> abrir(@PathVariable Long id) {
         return consolidadoRepository.findById(id)
                 .map(c -> {
@@ -132,7 +132,7 @@ public class ConsolidadoController {
     }
 
     @PutMapping("/{id}/cerrar")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.cerrar')")
     public ResponseEntity<Consolidado> cerrar(@PathVariable Long id, @RequestBody Consolidado details) {
         return consolidadoRepository.findById(id)
                 .map(c -> {
@@ -147,7 +147,7 @@ public class ConsolidadoController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','MV_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('consolidados.delete')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!consolidadoRepository.existsById(id)) {
             return ResponseEntity.notFound().build();

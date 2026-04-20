@@ -189,7 +189,9 @@ const SidebarContent = ({
     onQuickCreate,
     onSearchClick,
     canSeeAdmin,
-    canSeeOps,
+    canSeePaquetes,
+    canSeeConsols,
+    canSeeShippers,
     shipperNombre,
     canSeeSolicitudes = false,
     solicitudesPendientes = 0,
@@ -198,7 +200,9 @@ const SidebarContent = ({
     onQuickCreate?: () => void;
     onSearchClick?: () => void;
     canSeeAdmin: boolean;
-    canSeeOps: boolean;
+    canSeePaquetes: boolean;
+    canSeeConsols: boolean;
+    canSeeShippers: boolean;
     shipperNombre?: string | null;
     canSeeSolicitudes?: boolean;
     solicitudesPendientes?: number;
@@ -296,14 +300,20 @@ const SidebarContent = ({
         <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5" aria-label="Navegación principal">
             <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/dashboard" collapsed={collapsed} quickHint="G D" />
 
-            <SidebarSectionHeader title="GESTIÓN" collapsed={collapsed} />
-            <SidebarItem icon={Package} label="Paquetes" path="/paquetes" collapsed={collapsed} onAddClick={onQuickCreate} quickHint="G P" />
-            <SidebarItem icon={ShoppingBag} label="Consolidados" path="/consolidados" collapsed={collapsed} quickHint="G C" />
+            {canSeePaquetes || canSeeConsols ? (
+                <SidebarSectionHeader title="GESTIÓN" collapsed={collapsed} />
+            ) : null}
+            {canSeePaquetes ? (
+                <SidebarItem icon={Package} label="Paquetes" path="/paquetes" collapsed={collapsed} onAddClick={onQuickCreate} quickHint="G P" />
+            ) : null}
+            {canSeeConsols ? (
+                <SidebarItem icon={ShoppingBag} label="Consolidados" path="/consolidados" collapsed={collapsed} quickHint="G C" />
+            ) : null}
 
-            {canSeeOps || canSeeSolicitudes ? (
+            {canSeeShippers || canSeeSolicitudes ? (
                 <>
                     <SidebarSectionHeader title="OPERACIÓN" collapsed={collapsed} />
-                    {canSeeOps ? (
+                    {canSeeShippers ? (
                         <SidebarItem icon={Globe} label="Shippers" path="/shippers" collapsed={collapsed} quickHint="G S" />
                     ) : null}
                     {canSeeSolicitudes ? (
@@ -345,8 +355,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const solicitudes = useSolicitudesPendientes();
 
     const role = (me as MeResponse | null)?.rol ?? null;
+    const permisos = (me as MeResponse | null)?.permisos ?? [];
+    const hasPerm = useCallback((p: string) => permisos.includes(p), [permisos]);
+
     const canSeeAdmin = role === 'ADMIN';
-    const canSeeOps = role === 'ADMIN' || role === 'MV_ADMIN';
+    const canSeePaquetes = hasPerm('paquetes.read') || hasPerm('paquetes.create_minimo');
+    const canSeeConsols = hasPerm('consolidados.read');
+    const canSeeShippers = hasPerm('shippers.read');
+    // canSeeOps mantiene compatibilidad con quickActions / searchItems (atajos operativos).
+    const canSeeOps = canSeeShippers || hasPerm('consolidados.create');
     const isMac = useMemo(() => isMacPlatform(), []);
 
     const quickActions = useMemo(() => {
@@ -601,7 +618,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onQuickCreate={() => setQuickOpen(true)}
                     onSearchClick={() => setSearchOpen(true)}
                     canSeeAdmin={canSeeAdmin}
-                    canSeeOps={canSeeOps}
+                    canSeePaquetes={canSeePaquetes}
+                    canSeeConsols={canSeeConsols}
+                    canSeeShippers={canSeeShippers}
                     canSeeSolicitudes={solicitudes.enabled}
                     solicitudesPendientes={solicitudes.count}
                     shipperNombre={role === 'SHIPPER' ? (meData?.shipperNombre ?? null) : null}
@@ -659,7 +678,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                             onQuickCreate={() => setQuickOpen(true)}
                                             onSearchClick={() => setSearchOpen(true)}
                                             canSeeAdmin={canSeeAdmin}
-                                            canSeeOps={canSeeOps}
+                                            canSeePaquetes={canSeePaquetes}
+                                            canSeeConsols={canSeeConsols}
+                                            canSeeShippers={canSeeShippers}
                                             canSeeSolicitudes={solicitudes.enabled}
                                             solicitudesPendientes={solicitudes.count}
                                             shipperNombre={role === 'SHIPPER' ? (meData?.shipperNombre ?? null) : null}

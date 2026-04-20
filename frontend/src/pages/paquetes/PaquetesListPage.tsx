@@ -109,7 +109,8 @@ export default function PaquetesListPage() {
   const [sort, setSort] = useState<SortState>(initialPrefs.sort ?? { key: 'fechaRegistro', dir: 'desc' });
   const [estadoTab, setEstadoTab] = useState<EstadoTab>(initialPrefs.estadoTab ?? 'todos');
 
-  const showShipperFilter = me?.rol === 'OPERARIO' || me?.rol === 'ADMIN' || me?.rol === 'MV_ADMIN';
+  // El filtro por shipper solo tiene sentido cuando el usuario ve paquetes de varios shippers (no SHIPPER).
+  const showShipperFilter = me?.rol !== 'SHIPPER' && (me?.permisos?.includes('shippers.read') ?? false);
 
   useEffect(() => {
     if (!showShipperFilter) return;

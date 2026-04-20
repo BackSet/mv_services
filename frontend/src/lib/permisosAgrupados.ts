@@ -1,7 +1,8 @@
 import type { Permiso } from '@/services/permisos.service';
 
-// Convención: los permisos suelen llamarse MODULO_ACCION (p.ej. PAQUETE_CREAR).
-// Si no contiene "_", se agrupa bajo "General".
+// Convención del backend: los permisos se llaman `modulo.accion` (p.ej. `paquetes.read`,
+// `consolidados.add_paquete`). Mantenemos como respaldo el formato legacy `MODULO_ACCION`
+// cuando no hay punto. Si tampoco hay separador, el permiso cae bajo "General".
 
 export type GrupoPermisos = {
   modulo: string;        // Etiqueta legible para mostrar en UI (ej. "Paquetes").
@@ -36,9 +37,11 @@ const MODULO_LABELS: Record<string, string> = {
 const ACCION_LABELS: Record<string, { label: string; tone: 'create' | 'read' | 'update' | 'delete' | 'manage' | 'other' }> = {
   CREAR: { label: 'Crear', tone: 'create' },
   CREATE: { label: 'Crear', tone: 'create' },
+  CREATE_MINIMO: { label: 'Crear (mínimo)', tone: 'create' },
   NUEVO: { label: 'Crear', tone: 'create' },
   AGREGAR: { label: 'Agregar', tone: 'create' },
   REGISTRAR: { label: 'Registrar', tone: 'create' },
+  ADD_PAQUETE: { label: 'Agregar paquete', tone: 'create' },
 
   LEER: { label: 'Leer', tone: 'read' },
   LISTAR: { label: 'Listar', tone: 'read' },
@@ -52,6 +55,10 @@ const ACCION_LABELS: Record<string, { label: string; tone: 'create' | 'read' | '
   MODIFICAR: { label: 'Modificar', tone: 'update' },
   UPDATE: { label: 'Actualizar', tone: 'update' },
   EDIT: { label: 'Editar', tone: 'update' },
+  CERRAR: { label: 'Cerrar', tone: 'update' },
+  ABRIR: { label: 'Abrir', tone: 'update' },
+  APROBAR: { label: 'Aprobar', tone: 'update' },
+  RECHAZAR: { label: 'Rechazar', tone: 'update' },
 
   ELIMINAR: { label: 'Eliminar', tone: 'delete' },
   BORRAR: { label: 'Eliminar', tone: 'delete' },
@@ -61,6 +68,7 @@ const ACCION_LABELS: Record<string, { label: string; tone: 'create' | 'read' | '
   ADMIN: { label: 'Administrar', tone: 'manage' },
   ADMINISTRAR: { label: 'Administrar', tone: 'manage' },
   GESTIONAR: { label: 'Gestionar', tone: 'manage' },
+  MANAGE: { label: 'Gestionar', tone: 'manage' },
   EXPORTAR: { label: 'Exportar', tone: 'other' },
   IMPRIMIR: { label: 'Imprimir', tone: 'other' },
   IMPORTAR: { label: 'Importar', tone: 'other' },
@@ -68,13 +76,20 @@ const ACCION_LABELS: Record<string, { label: string; tone: 'create' | 'read' | '
 
 export type AccionTone = 'create' | 'read' | 'update' | 'delete' | 'manage' | 'other';
 
-/** Devuelve la clave de módulo a partir del nombre del permiso (en mayúsculas). */
+/**
+ * Devuelve la clave de módulo a partir del nombre del permiso (en mayúsculas).
+ * Soporta ambas convenciones:
+ *  - `modulo.accion` (formato actual del backend, p.ej. `paquetes.read`).
+ *  - `MODULO_ACCION` (formato legacy, p.ej. `PAQUETE_CREAR`).
+ */
 export function getModuloKey(nombre: string | null | undefined): string {
   const v = (nombre ?? '').trim().toUpperCase();
   if (!v) return 'GENERAL';
-  const idx = v.indexOf('_');
-  if (idx <= 0) return 'GENERAL';
-  return v.slice(0, idx);
+  const dot = v.indexOf('.');
+  if (dot > 0) return v.slice(0, dot);
+  const us = v.indexOf('_');
+  if (us > 0) return v.slice(0, us);
+  return 'GENERAL';
 }
 
 /** Devuelve la etiqueta legible del módulo. */
@@ -82,21 +97,34 @@ export function getModuloLabel(moduloKey: string): string {
   return MODULO_LABELS[moduloKey] ?? capitalize(moduloKey.toLowerCase());
 }
 
-/** Devuelve la acción (parte después del primer "_") y su clasificación visual. */
+/**
+ * Devuelve la acción (parte después del primer separador `.` o `_`) y su clasificación visual.
+ * Si la acción es compuesta (p.ej. `add_paquete`, `create_minimo`) primero se busca la coincidencia
+ * exacta y luego se hace fallback a una etiqueta legible derivada del propio nombre.
+ */
 export function getAccionInfo(nombre: string | null | undefined): {
   raw: string;
   label: string;
   tone: AccionTone;
 } {
   const v = (nombre ?? '').trim().toUpperCase();
-  const idx = v.indexOf('_');
+  if (!v) return { raw: '', label: '', tone: 'other' };
+
+  let idx = v.indexOf('.');
+  if (idx < 0) idx = v.indexOf('_');
   if (idx < 0 || idx === v.length - 1) {
     return { raw: v, label: capitalize(v.toLowerCase()), tone: 'other' };
   }
+
   const accion = v.slice(idx + 1);
   const meta = ACCION_LABELS[accion];
   if (meta) return { raw: accion, label: meta.label, tone: meta.tone };
-  return { raw: accion, label: capitalize(accion.toLowerCase().replace(/_/g, ' ')), tone: 'other' };
+
+  // Para acciones compuestas (p.ej. `add_paquete`) intentamos clasificar por el primer token.
+  const firstToken = accion.split('_')[0];
+  const fallback = ACCION_LABELS[firstToken];
+  const tone: AccionTone = fallback?.tone ?? 'other';
+  return { raw: accion, label: capitalize(accion.toLowerCase().replace(/_/g, ' ')), tone };
 }
 
 /** Clases Tailwind para colorear badges según el tono de la acción. */

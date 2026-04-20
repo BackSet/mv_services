@@ -36,20 +36,24 @@ export function ListPagination({
   const to = total ? Math.min((page + 1) * size, total) : 0
 
   return (
-    <div className={cn('flex items-center justify-between pt-4 border-t border-border/40 gap-2 flex-wrap', className)}>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
+    <div className={cn('flex items-center justify-between pt-5 mt-2 border-t border-border/60 gap-3 flex-wrap', className)}>
+      <div className="flex items-center gap-4 text-xs text-muted-foreground tabular-nums">
         {showRange && total > 0 ? (
-          <span>Mostrando <strong>{from}</strong>–<strong>{to}</strong> de <strong>{total}</strong></span>
+          <span>
+            Mostrando <strong className="text-foreground font-medium">{from}</strong>–
+            <strong className="text-foreground font-medium">{to}</strong> de{' '}
+            <strong className="text-foreground font-medium">{total}</strong>
+          </span>
         ) : (
           <span>Página {page + 1} de {totalPages}</span>
         )}
         {pageSizeOptions && onPageSizeChange && (
-          <label className="flex items-center gap-1.5">
-            <span className="text-[11px] uppercase tracking-wider">Por página</span>
+          <label className="flex items-center gap-2">
+            <span className="text-[11px] uppercase tracking-[0.08em]">Por página</span>
             <select
               value={size}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:border-ring"
             >
               {pageSizeOptions.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -63,9 +67,8 @@ export function ListPagination({
         {variant === 'full' && (
           <>
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 min-h-10 min-w-10 sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => onPageChange(0)}
               disabled={!canPrev}
               aria-label="Primera página"
@@ -73,22 +76,20 @@ export function ListPagination({
               <ChevronsLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 min-h-10 min-w-10 sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => onPageChange(page - 1)}
               disabled={!canPrev}
               aria-label="Página anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="flex items-center justify-center min-w-[3rem] text-sm font-medium tabular-nums px-1">
+            <div className="flex items-center justify-center min-w-[4rem] text-sm font-medium tabular-nums px-2 text-foreground">
               {page + 1} / {totalPages}
             </div>
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 min-h-10 min-w-10 sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => onPageChange(page + 1)}
               disabled={!canNext}
               aria-label="Página siguiente"
@@ -96,9 +97,8 @@ export function ListPagination({
               <ChevronRight className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 min-h-10 min-w-10 sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => onPageChange(totalPages - 1)}
               disabled={!canNext}
               aria-label="Última página"
@@ -110,21 +110,19 @@ export function ListPagination({
         {variant === 'compact' && (
           <>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => onPageChange(page - 1)}
               disabled={!canPrev}
-              className="h-8 text-xs"
             >
               <ChevronLeft className="h-3.5 w-3.5 mr-1.5" />
               Anterior
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => onPageChange(page + 1)}
               disabled={!canNext}
-              className="h-8 text-xs"
             >
               Siguiente
               <ChevronRight className="h-3.5 w-3.5 ml-1.5" />

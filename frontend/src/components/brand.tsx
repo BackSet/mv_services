@@ -26,12 +26,12 @@ export function Brand({
   const { text, dot, gap } = sizeMap[size];
 
   const content = (
-    <span className={cn("inline-flex items-center", gap, "font-bold tracking-tight")}>
+    <span className={cn("inline-flex items-baseline", gap, "font-serif tracking-tight")}>
       <span>MV</span>
-      <span className="text-mvs-secondary">Services</span>
+      <span className="text-accent">Services</span>
       <span
         aria-hidden
-        className={cn("ml-0.5 rounded-full bg-mvs-secondary", dot)}
+        className={cn("ml-0.5 rounded-full bg-accent self-center", dot)}
       />
     </span>
   );
@@ -64,15 +64,15 @@ export function BrandMark({
   return (
     <span
       className={cn(
-        "relative inline-flex flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-foreground to-foreground/85 font-bold text-background shadow-sm",
+        "relative inline-flex flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-foreground to-foreground/85 font-serif font-normal text-background shadow-soft",
         className,
       )}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.5) }}
       aria-hidden
     >
       M
       <span
-        className="absolute -right-0.5 -top-0.5 rounded-full bg-mvs-secondary ring-2 ring-background"
+        className="absolute -right-0.5 -top-0.5 rounded-full bg-accent ring-2 ring-background"
         style={{ width: Math.max(8, size * 0.28), height: Math.max(8, size * 0.28) }}
       />
     </span>

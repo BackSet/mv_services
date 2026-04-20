@@ -1,23 +1,27 @@
 import type { ReactNode } from 'react';
 
-export type KpiAccent = 'primary' | 'success' | 'warning' | 'muted' | 'info';
+export type KpiAccent = 'primary' | 'success' | 'warning' | 'muted' | 'info' | 'brand';
 
 const accentClasses: Record<KpiAccent, { iconBox: string; bar: string }> = {
+  brand: {
+    iconBox: 'bg-accent-soft text-accent',
+    bar: 'bg-accent',
+  },
   primary: {
-    iconBox: 'bg-primary/10 text-primary',
-    bar: 'bg-primary',
+    iconBox: 'bg-foreground/10 text-foreground',
+    bar: 'bg-foreground',
   },
   success: {
-    iconBox: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    bar: 'bg-emerald-500',
+    iconBox: 'bg-success/10 text-success',
+    bar: 'bg-success',
   },
   warning: {
-    iconBox: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    bar: 'bg-amber-500',
+    iconBox: 'bg-warning/15 text-warning',
+    bar: 'bg-warning',
   },
   info: {
-    iconBox: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
-    bar: 'bg-sky-500',
+    iconBox: 'bg-info/10 text-info',
+    bar: 'bg-info',
   },
   muted: {
     iconBox: 'bg-muted text-muted-foreground',
@@ -30,7 +34,7 @@ export function KpiCard({
   label,
   value,
   hint,
-  accent = 'primary',
+  accent = 'brand',
   progress,
 }: {
   icon: ReactNode;
@@ -42,23 +46,29 @@ export function KpiCard({
 }) {
   const a = accentClasses[accent];
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-2xl border border-border/70 bg-card px-5 py-5 shadow-soft transition-all duration-200 ease-claude hover:border-foreground/15 hover:shadow-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
             {label}
           </div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums leading-tight">{value}</div>
-          {hint && <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">{hint}</div>}
+          <div className="mt-2 font-serif text-3xl tabular-nums leading-tight text-foreground">
+            {value}
+          </div>
+          {hint && (
+            <div className="mt-1.5 text-xs text-muted-foreground tabular-nums">{hint}</div>
+          )}
         </div>
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.iconBox}`}>
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${a.iconBox}`}
+        >
           {icon}
         </span>
       </div>
       {typeof progress === 'number' && (
-        <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
+        <div className="mt-4 h-1 rounded-full bg-muted overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${a.bar}`}
+            className={`h-full rounded-full transition-all duration-300 ease-claude ${a.bar}`}
             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
           />
         </div>
@@ -69,7 +79,7 @@ export function KpiCard({
 
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted/40 font-mono text-[10px] inline-flex items-center">
+    <kbd className="px-1.5 py-0.5 rounded-md border border-border bg-muted/60 font-mono text-[10px] inline-flex items-center">
       {children}
     </kbd>
   );

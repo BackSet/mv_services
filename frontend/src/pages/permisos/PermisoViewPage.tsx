@@ -22,7 +22,7 @@ import { DetailPageLayout } from '@/components/detail/DetailPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
 import { PageContent } from '@/components/layout/PageContent';
-import { LoadingState } from '@/components/states/LoadingState';
+import { DetailPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,8 +54,8 @@ function CopyButton({ text, label = 'Texto' }: { text: string; label?: string })
           toast.error('No se pudo copiar');
         }
       }}
-      className={`h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent transition-all ${
-        done ? 'text-emerald-600 dark:text-emerald-400' : ''
+      className={`h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted transition-all ${
+        done ? 'text-success' : ''
       }`}
       title={`Copiar ${label.toLowerCase()}`}
       aria-label={`Copiar ${label.toLowerCase()}`}
@@ -227,7 +227,7 @@ export default function PermisoViewPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando permiso..." />
+          <DetailPageSkeleton kpis={3} sections={[2]} />
         ) : error ? (
           <ErrorState title="Error al cargar permiso" description={error} />
         ) : !row ? (
@@ -265,7 +265,7 @@ export default function PermisoViewPage() {
                     {row.descripcion?.trim() ? (
                       <p className="text-xs text-muted-foreground max-w-2xl">{row.descripcion}</p>
                     ) : (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                      <p className="text-[11px] text-warning inline-flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
                         Este permiso no tiene descripción. Considera agregar una.
                       </p>
@@ -322,11 +322,11 @@ export default function PermisoViewPage() {
 
             {/* Aviso de uso */}
             {enUso && (
-              <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 flex items-start gap-3">
-                <Shield className="h-4 w-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
-                <div className="text-xs text-sky-900 dark:text-sky-200 space-y-0.5">
+              <div className="rounded-xl border border-info/30 bg-info/5 p-3 flex items-start gap-3">
+                <Shield className="h-4 w-4 text-info mt-0.5 shrink-0" />
+                <div className="text-xs text-info space-y-0.5">
                   <p className="font-medium">Permiso en uso</p>
-                  <p className="text-sky-800 dark:text-sky-300/90">
+                  <p className="text-info/90">
                     Este permiso está asignado a {relatedRoles.length} rol{relatedRoles.length === 1 ? '' : 'es'}
                     {relatedUsuarios.length > 0 && ` y afecta a ${relatedUsuarios.length} usuario${relatedUsuarios.length === 1 ? '' : 's'}`}.
                     No se puede eliminar mientras esté siendo utilizado.
@@ -432,10 +432,10 @@ export default function PermisoViewPage() {
                         key={r.id}
                         type="button"
                         onClick={() => navigate(`/roles/${r.id}`)}
-                        className="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/50 bg-background hover:border-primary/40 hover:bg-accent/50 transition-all text-left"
+                        className="group flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/50 bg-background hover:border-accent/40 hover:bg-accent-soft/40 transition-all ease-claude text-left"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <Shield className="h-3.5 w-3.5 text-accent shrink-0" />
                           <div className="min-w-0">
                             <div className="text-sm font-medium truncate">{r.nombre}</div>
                             <div className="text-[10px] text-muted-foreground tabular-nums">
@@ -482,9 +482,9 @@ export default function PermisoViewPage() {
                       key={u.id}
                       type="button"
                       onClick={() => navigate(`/usuarios/${u.id}`)}
-                      className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-background hover:border-primary/40 hover:bg-accent/50 transition-all text-left min-w-0"
+                      className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-background hover:border-accent/40 hover:bg-accent-soft/40 transition-all ease-claude text-left min-w-0"
                     >
-                      <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-semibold uppercase shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-accent-soft text-accent-soft-foreground flex items-center justify-center text-[11px] font-semibold uppercase shrink-0">
                         {(u.username ?? '?').slice(0, 2)}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -492,7 +492,7 @@ export default function PermisoViewPage() {
                         <div className="text-[10px] text-muted-foreground truncate">{u.email}</div>
                       </div>
                       {u.activo ? (
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
                       ) : (
                         <XCircle className="h-3 w-3 text-muted-foreground shrink-0" />
                       )}

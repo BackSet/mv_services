@@ -31,7 +31,7 @@ import {
   updateRol,
 } from '@/services/roles.service';
 import { listUsuarios } from '@/services/usuarios.service';
-import { LoadingState } from '@/components/states/LoadingState';
+import { FormPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import { PermisosSelector } from '@/components/roles/PermisosSelector';
@@ -331,7 +331,7 @@ export default function RolEditPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando rol..." />
+          <FormPageSkeleton sections={[3, 4]} />
         ) : loadError || !original ? (
           <ErrorState
             title="No se pudo cargar el rol"
@@ -348,7 +348,7 @@ export default function RolEditPage() {
               {/* Banner identificativo */}
               <div className="rounded-xl border border-border bg-card/50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent-soft-foreground">
                     <Shield className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
@@ -372,7 +372,7 @@ export default function RolEditPage() {
                   </div>
                 </div>
                 {isDirty && (
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 shrink-0">
+                  <Badge variant="warning" className="gap-1 shrink-0">
                     <AlertCircle className="h-3 w-3" />
                     Cambios sin guardar
                   </Badge>
@@ -381,7 +381,7 @@ export default function RolEditPage() {
 
               {/* Avisos contextuales */}
               {enUso && (
-                <div className="rounded-lg border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-xs text-sky-700 dark:text-sky-400 flex items-start gap-2">
+                <div className="rounded-lg border border-info/30 bg-info/5 px-4 py-3 text-xs text-info flex items-start gap-2">
                   <Users className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">
@@ -395,7 +395,7 @@ export default function RolEditPage() {
               )}
 
               {enUso && selectedIds.length === 0 && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-xs text-warning flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Vas a guardar este rol sin permisos.</p>
@@ -410,9 +410,9 @@ export default function RolEditPage() {
               <SectionCard icon={Info} iconColor="blue" title="Información general">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 md:col-span-2">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Label variant="caption" className="flex items-center gap-1">
                       Nombre <span className="text-destructive">*</span>
-                      <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                      <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                         {nombre.length}/50
                       </span>
                     </Label>
@@ -448,21 +448,18 @@ export default function RolEditPage() {
                     {(cambios.agregados > 0 || cambios.quitados > 0) && (
                       <>
                         {cambios.agregados > 0 && (
-                          <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 tabular-nums">
+                          <Badge variant="success" className="text-[10px] gap-1 tabular-nums">
                             +{cambios.agregados}
                           </Badge>
                         )}
                         {cambios.quitados > 0 && (
-                          <Badge variant="outline" className="text-[10px] gap-1 bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 tabular-nums">
+                          <Badge variant="destructive" className="text-[10px] gap-1 tabular-nums">
                             −{cambios.quitados}
                           </Badge>
                         )}
                       </>
                     )}
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] gap-1 bg-violet-500/5 border-violet-500/30 text-violet-700 dark:text-violet-400 tabular-nums"
-                    >
+                    <Badge variant="brand" className="text-[10px] gap-1 tabular-nums">
                       <KeyRound className="h-2.5 w-2.5" />
                       {selectedIds.length}
                     </Badge>
@@ -497,7 +494,7 @@ export default function RolEditPage() {
                       <span className="truncate">Sin cambios pendientes</span>
                     </span>
                   ) : isValid ? (
-                    <span className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-2 text-success">
                       <CheckCircle2 className="h-4 w-4" />
                       <span className="truncate">
                         Listo para guardar
@@ -511,7 +508,7 @@ export default function RolEditPage() {
                       </span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1.5 text-warning">
                       <AlertCircle className="h-4 w-4" />
                       <span className="truncate">
                         {Object.keys(errors).length} campo{Object.keys(errors).length === 1 ? '' : 's'} por revisar

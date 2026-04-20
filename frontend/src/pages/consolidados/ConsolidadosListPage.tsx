@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Boxes, Plus, Eye, Trash2, RefreshCcw, FilterX, Copy,
   Lock, LockOpen, Package, Weight, ListChecks, CheckCircle2,
-  AlertCircle, Rows3, Rows2, ArrowUp,
+  AlertCircle, Rows3, Rows2, ArrowUp, Printer,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
@@ -13,16 +13,24 @@ import type { NotionTableAction, SortState } from '@/components/notion/NotionTab
 import EmptyState from '@/components/notion/EmptyState';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { ListPagination } from '@/components/list/ListPagination';
-import { LoadingState } from '@/components/states/LoadingState';
+import { TableSkeleton, PaginationSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
 import { PageContent } from '@/components/layout/PageContent';
 import { useConsolidadosList } from '@/hooks/useConsolidados';
-import { deleteConsolidado, type Consolidado } from '@/services/consolidados.service';
+import {
+  abrirConsolidado,
+  cerrarConsolidado,
+  deleteConsolidado,
+  type Consolidado,
+} from '@/services/consolidados.service';
+import { listPaquetes, type Paquete } from '@/services/paquetes.service';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import { useMe } from '@/hooks/useMe';
+import { printPackageLabels } from '@/lib/printLabels';
+import { processPool } from '@/lib/concurrency';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const STORAGE_KEY = 'consolidados:list:prefs:v1';
@@ -245,10 +253,156 @@ export default function ConsolidadosListPage() {
 
   const consolidadoToDelete = deleteId != null ? rows?.find((c) => c.id === deleteId) : null;
 
+  // Cache liviano de paquetes (sólo se llena al imprimir)
+  const cachePaquetesRef = useMemo<{ list: Paquete[] | null }>(() => ({ list: null }), []);
+  const obtenerPaquetes = async (forceRefresh = false): Promise<Paquete[]> => {
+    if (!forceRefresh && cachePaquetesRef.list) return cachePaquetesRef.list;
+    const data = await listPaquetes();
+    cachePaquetesRef.list = data;
+    return data;
+  };
+
+  const buildLabelsForConsolidado = (c: Consolidado, allPaquetes: Paquete[]) => {
+    const paquetes = allPaquetes
+      .filter((p) => p.consolidado?.id === c.id)
+      .sort((a, b) => {
+        const pa = a.posicionEnConsolidado ?? Number.MAX_SAFE_INTEGER;
+        const pb = b.posicionEnConsolidado ?? Number.MAX_SAFE_INTEGER;
+        if (pa !== pb) return pa - pb;
+        return a.id - b.id;
+      });
+    const consolidadoGuia = c.numeroGuia ?? `#${c.id}`;
+    const total = paquetes.length;
+    return paquetes.map((p) => ({
+      numeroGuia: p.numeroGuia,
+      shipperNombre: p.shipper?.nombre ?? null,
+      shipperEncargado: p.shipper?.nombreEncargado ?? null,
+      destinatarioNombre: p.destinatario ?? null,
+      ref: p.ref ?? null,
+      pesoLbs: p.pesoLbs ?? null,
+      pesoKgs: p.pesoKgs ?? null,
+      contenido: p.contenido ?? null,
+      consolidadoGuia,
+      posicionEnConsolidado: p.posicionEnConsolidado ?? null,
+      totalEnConsolidado: total,
+    }));
+  };
+
+  const imprimirEtiquetasDelConsolidado = async (c: Consolidado) => {
+    const tid = toast.loading(`Cargando paquetes de ${c.numeroGuia ?? `#${c.id}`}…`);
+    try {
+      const all = await obtenerPaquetes();
+      const labels = buildLabelsForConsolidado(c, all);
+      if (labels.length === 0) {
+        toast.dismiss(tid);
+        toast.info('Este consolidado no tiene paquetes para imprimir.');
+        return;
+      }
+      toast.dismiss(tid);
+      await printPackageLabels(labels, {
+        title: `Etiquetas · Consolidado ${c.numeroGuia ?? `#${c.id}`}`,
+        pageSize: '4x6',
+        mode: 'thermal',
+        withQR: true,
+      });
+    } catch (e) {
+      toast.dismiss(tid);
+      console.error('Error imprimiendo etiquetas del consolidado', e);
+      toast.error('No se pudieron cargar los paquetes para imprimir.');
+    }
+  };
+
+  const imprimirEtiquetasSeleccion = async () => {
+    if (selectedConsolidados.length === 0) return;
+    const tid = toast.loading(
+      `Cargando paquetes de ${selectedConsolidados.length} consolidado${selectedConsolidados.length !== 1 ? 's' : ''}…`,
+    );
+    try {
+      const all = await obtenerPaquetes(true);
+      const grupos = await processPool(selectedConsolidados, 4, async (c) => buildLabelsForConsolidado(c, all));
+      const labels = grupos.flat();
+      if (labels.length === 0) {
+        toast.dismiss(tid);
+        toast.info('Los consolidados seleccionados no tienen paquetes para imprimir.');
+        return;
+      }
+      toast.dismiss(tid);
+      await printPackageLabels(labels, {
+        title: `Etiquetas · ${selectedConsolidados.length} consolidado${selectedConsolidados.length !== 1 ? 's' : ''}`,
+        pageSize: '4x6',
+        mode: 'thermal',
+        withQR: true,
+      });
+    } catch (e) {
+      toast.dismiss(tid);
+      console.error('Error imprimiendo etiquetas de seleccion', e);
+      toast.error('No se pudieron cargar los paquetes para imprimir.');
+    }
+  };
+
+  const cerrarConsolidadoQuick = async (c: Consolidado) => {
+    if (!c.numeroGuia?.trim()) {
+      toast.info('Este consolidado no tiene número de guía. Asignele uno desde el detalle antes de cerrar.');
+      navigate(`/consolidados/${c.id}`);
+      return;
+    }
+    const ok = window.confirm(
+      `¿Cerrar el consolidado ${c.numeroGuia}? No podrás agregar ni quitar paquetes una vez cerrado.`,
+    );
+    if (!ok) return;
+    const tid = toast.loading('Cerrando consolidado…');
+    try {
+      await cerrarConsolidado(c.id, { numeroGuia: c.numeroGuia });
+      toast.dismiss(tid);
+      toast.success('Consolidado cerrado.');
+      refresh();
+    } catch (e) {
+      toast.dismiss(tid);
+      console.error('Error cerrando consolidado', e);
+      toast.error('No se pudo cerrar el consolidado.');
+    }
+  };
+
+  const reabrirConsolidadoQuick = async (c: Consolidado) => {
+    const ok = window.confirm(`¿Reabrir el consolidado ${c.numeroGuia ?? `#${c.id}`}?`);
+    if (!ok) return;
+    const tid = toast.loading('Reabriendo consolidado…');
+    try {
+      await abrirConsolidado(c.id);
+      toast.dismiss(tid);
+      toast.success('Consolidado reabierto.');
+      refresh();
+    } catch (e) {
+      toast.dismiss(tid);
+      console.error('Error reabriendo consolidado', e);
+      toast.error('No se pudo reabrir el consolidado.');
+    }
+  };
+
   const rowActions = (r: Consolidado): NotionTableAction<Consolidado>[] => {
     const actions: NotionTableAction<Consolidado>[] = [
       { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/consolidados/${r.id}`) },
+      {
+        label: 'Imprimir etiquetas',
+        icon: Printer,
+        onClick: () => { void imprimirEtiquetasDelConsolidado(r); },
+      },
     ];
+    if (canEdit) {
+      if (isAbierto(r)) {
+        actions.push({
+          label: 'Cerrar consolidado',
+          icon: Lock,
+          onClick: () => { void cerrarConsolidadoQuick(r); },
+        });
+      } else if (isCerrado(r)) {
+        actions.push({
+          label: 'Reabrir consolidado',
+          icon: LockOpen,
+          onClick: () => { void reabrirConsolidadoQuick(r); },
+        });
+      }
+    }
     if (canDeleteConsolidado) {
       actions.push({ label: 'Eliminar', icon: Trash2, onClick: () => setDeleteId(r.id), destructive: true });
     }
@@ -370,14 +524,14 @@ export default function ConsolidadosListPage() {
           <div className="flex flex-wrap items-center gap-1 border-b border-border/60 -mb-px">
             {([
               { id: 'todos' as const, label: 'Todos', count: tabCounts.todos, icon: <Boxes className="h-3.5 w-3.5" /> },
-              { id: 'abiertos' as const, label: 'Abiertos', count: tabCounts.abiertos, icon: <LockOpen className="h-3.5 w-3.5" />, accent: 'amber' as const },
-              { id: 'cerrados' as const, label: 'Cerrados', count: tabCounts.cerrados, icon: <Lock className="h-3.5 w-3.5" />, accent: 'emerald' as const },
-              { id: 'sin-guia' as const, label: 'Sin guía', count: tabCounts.sinGuia, icon: <AlertCircle className="h-3.5 w-3.5" />, accent: 'amber' as const },
+              { id: 'abiertos' as const, label: 'Abiertos', count: tabCounts.abiertos, icon: <LockOpen className="h-3.5 w-3.5" />, accent: 'warning' as const },
+              { id: 'cerrados' as const, label: 'Cerrados', count: tabCounts.cerrados, icon: <Lock className="h-3.5 w-3.5" />, accent: 'success' as const },
+              { id: 'sin-guia' as const, label: 'Sin guía', count: tabCounts.sinGuia, icon: <AlertCircle className="h-3.5 w-3.5" />, accent: 'warning' as const },
             ]).map((t) => {
               const active = estadoTab === t.id;
               const accentText =
-                t.accent === 'amber' ? 'text-amber-600 dark:text-amber-400' :
-                t.accent === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' :
+                t.accent === 'warning' ? 'text-warning' :
+                t.accent === 'success' ? 'text-success' :
                 'text-muted-foreground';
               return (
                 <button
@@ -385,14 +539,14 @@ export default function ConsolidadosListPage() {
                   type="button"
                   onClick={() => { setEstadoTab(t.id); setPage(0); }}
                   className={
-                    'group inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ' +
+                    'group inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ease-claude border-b-2 -mb-px ' +
                     (active
-                      ? 'border-primary text-foreground'
+                      ? 'border-accent text-foreground'
                       : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border')
                   }
                   aria-pressed={active}
                 >
-                  <span className={active ? 'text-primary' : accentText}>{t.icon}</span>
+                  <span className={active ? 'text-accent' : accentText}>{t.icon}</span>
                   <span>{t.label}</span>
                   <Badge
                     variant={active ? 'default' : 'secondary'}
@@ -478,12 +632,23 @@ export default function ConsolidadosListPage() {
 
           {/* Acciones masivas */}
           {selectedCount > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/30 bg-accent-soft/60 px-3 py-2 shadow-soft">
               <div className="text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <CheckCircle2 className="h-4 w-4 text-accent" />
                 <span><span className="font-semibold tabular-nums">{selectedCount}</span> consolidado{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''}</span>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => { void imprimirEtiquetasSeleccion(); }}
+                  title="Imprimir todas las etiquetas de los consolidados seleccionados"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Imprimir etiquetas
+                </Button>
                 {canDeleteConsolidado && (
                   <Button
                     type="button"
@@ -504,7 +669,10 @@ export default function ConsolidadosListPage() {
           )}
 
           {loading ? (
-            <LoadingState label="Cargando consolidados..." />
+            <>
+              <TableSkeleton rows={pageSize} columns={6} showCheckbox density={density} />
+              <PaginationSkeleton />
+            </>
           ) : error ? (
             <ErrorState
               title="Error al cargar consolidados"
@@ -543,12 +711,6 @@ export default function ConsolidadosListPage() {
                 onSelectionChange={(ids) => setSelectedIds(new Set(ids.map((x) => Number(x))))}
                 columns={[
                   {
-                    header: 'ID',
-                    sortKey: 'id',
-                    className: 'w-[80px] text-muted-foreground',
-                    cell: (r) => <span className="font-mono text-[12px]">#{r.id}</span>,
-                  },
-                  {
                     header: 'GUÍA ENVÍO',
                     sortKey: 'numeroGuia',
                     className: 'font-medium',
@@ -564,7 +726,7 @@ export default function ConsolidadosListPage() {
                               e.stopPropagation();
                               copiarTexto(r.numeroGuia, 'Guía');
                             }}
-                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                             title="Copiar guía al portapapeles"
                             aria-label="Copiar guía"
                           >
@@ -581,7 +743,7 @@ export default function ConsolidadosListPage() {
                     cell: (r) => {
                       if (isCerrado(r)) {
                         return (
-                          <Badge variant="outline" className="gap-1 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-normal">
+                          <Badge variant="outline" className="gap-1 border-success/40 bg-success/15 text-success font-normal">
                             <Lock className="h-3 w-3" />
                             Cerrado
                           </Badge>
@@ -589,7 +751,7 @@ export default function ConsolidadosListPage() {
                       }
                       if (isAbierto(r)) {
                         return (
-                          <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-normal">
+                          <Badge variant="outline" className="gap-1 border-warning/40 bg-warning/15 text-warning font-normal">
                             <LockOpen className="h-3 w-3" />
                             Abierto
                           </Badge>
@@ -634,6 +796,12 @@ export default function ConsolidadosListPage() {
                         ? <span className="text-foreground">{r.pesoTotalKgs.toFixed(2)}</span>
                         : <span className="text-muted-foreground">—</span>
                     ),
+                  },
+                  {
+                    header: 'ID',
+                    sortKey: 'id',
+                    className: 'w-[80px] text-muted-foreground',
+                    cell: (r) => <span className="font-mono text-[12px]">#{r.id}</span>,
                   },
                 ]}
               />

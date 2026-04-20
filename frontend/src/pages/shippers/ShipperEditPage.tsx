@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/states/LoadingState';
+import { FormPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import {
@@ -437,9 +437,9 @@ export default function ShipperEditPage() {
   const showError = (key: string) => touched && !!errors[key];
 
   const renderTelForm = () => (
-    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
+    <div className="rounded-xl border border-accent/30 bg-accent-soft/60 p-4 space-y-4 shadow-soft">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           {editingTelId === 'new' ? 'Nuevo teléfono' : 'Editar teléfono'}
         </span>
         <Button
@@ -455,7 +455,7 @@ export default function ShipperEditPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <Label variant="caption">
             Número *
           </Label>
           <Input
@@ -472,7 +472,7 @@ export default function ShipperEditPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <Label variant="caption">
             Etiqueta
           </Label>
           <Input
@@ -492,12 +492,12 @@ export default function ShipperEditPage() {
           <label className="flex items-center gap-2 cursor-pointer text-sm">
             <input
               type="checkbox"
-              className="accent-primary h-4 w-4"
+              className="accent-[hsl(var(--accent))] h-4 w-4"
               checked={telForm.esPrincipal}
               onChange={(e) => setTelForm({ ...telForm, esPrincipal: e.target.checked })}
             />
             <span className="inline-flex items-center gap-1">
-              <Star className="h-3 w-3 text-amber-500" />
+              <Star className="h-3 w-3 text-warning" />
               Principal
             </span>
           </label>
@@ -521,9 +521,9 @@ export default function ShipperEditPage() {
   );
 
   const renderDirForm = () => (
-    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-4">
+    <div className="rounded-xl border border-accent/30 bg-accent-soft/60 p-4 space-y-4 shadow-soft">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           {editingDirId === 'new' ? 'Nueva dirección' : 'Editar dirección'}
         </span>
         <Button
@@ -539,9 +539,7 @@ export default function ShipperEditPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            País
-          </Label>
+          <Label variant="caption">País</Label>
           <Input
             className="h-9"
             value={dirForm.pais}
@@ -549,9 +547,7 @@ export default function ShipperEditPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            Ciudad
-          </Label>
+          <Label variant="caption">Ciudad</Label>
           <Input
             className="h-9"
             value={dirForm.ciudad}
@@ -559,9 +555,7 @@ export default function ShipperEditPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            Cantón
-          </Label>
+          <Label variant="caption">Cantón</Label>
           <Input
             className="h-9"
             value={dirForm.canton}
@@ -569,9 +563,7 @@ export default function ShipperEditPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            Referencia
-          </Label>
+          <Label variant="caption">Referencia</Label>
           <Input
             className="h-9"
             value={dirForm.referencia}
@@ -579,9 +571,7 @@ export default function ShipperEditPage() {
           />
         </div>
         <div className="space-y-1.5 md:col-span-2">
-          <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-            Dirección *
-          </Label>
+          <Label variant="caption">Dirección *</Label>
           <Input
             className="h-9"
             value={dirForm.direccion}
@@ -639,11 +629,13 @@ export default function ShipperEditPage() {
             <Button
               size="sm"
               onClick={() => submitDatos()}
-              disabled={submitting || !isValid || !isDatosDirty}
+              disabled={!isValid || !isDatosDirty}
+              loading={submitting}
+              loadingText="Guardando…"
               className="gap-1.5"
               title="Guardar (Ctrl+S)"
             >
-              <Save className="h-3.5 w-3.5" /> {submitting ? 'Guardando…' : 'Guardar datos'}
+              <Save className="h-3.5 w-3.5" /> Guardar datos
             </Button>
           </div>
         }
@@ -658,7 +650,7 @@ export default function ShipperEditPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando shipper..." />
+          <FormPageSkeleton sections={[4, 4]} />
         ) : error ? (
           <ErrorState title="Error" description={error} />
         ) : !row ? (
@@ -667,9 +659,9 @@ export default function ShipperEditPage() {
           <>
             <div className="max-w-4xl mx-auto p-6 space-y-6 pb-32">
               {/* Banner identificativo */}
-              <div className="rounded-xl border border-border bg-card/50 p-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="rounded-xl border border-border bg-card/50 p-4 flex items-center justify-between gap-3 flex-wrap shadow-soft">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent">
                     <Pencil className="h-4 w-4" />
                   </span>
                   <div className="min-w-0">
@@ -686,7 +678,7 @@ export default function ShipperEditPage() {
                 {isDirty ? (
                   <Badge
                     variant="outline"
-                    className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1"
+                    className="bg-warning/15 text-warning border-warning/30 gap-1"
                   >
                     <AlertCircle className="h-3 w-3" />
                     Cambios sin guardar
@@ -694,7 +686,7 @@ export default function ShipperEditPage() {
                 ) : (
                   <Badge
                     variant="outline"
-                    className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
+                    className="bg-success/15 text-success border-success/30 gap-1"
                   >
                     <CheckCircle2 className="h-3 w-3" />
                     Sin cambios pendientes
@@ -714,7 +706,7 @@ export default function ShipperEditPage() {
                       <button
                         type="button"
                         onClick={() => copyText(String(row.id), 'ID')}
-                        className="h-6 w-6 inline-flex items-center justify-center rounded border border-transparent hover:border-border hover:bg-accent text-muted-foreground hover:text-foreground"
+                        className="h-6 w-6 inline-flex items-center justify-center rounded border border-transparent hover:border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ease-claude"
                         title="Copiar ID"
                       >
                         <Copy className="h-3 w-3" />
@@ -724,7 +716,7 @@ export default function ShipperEditPage() {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2 md:col-span-2">
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Label variant="caption" className="flex items-center gap-1">
                         Nombre <span className="text-destructive">*</span>
                         <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
                           {form.nombre.length}/100
@@ -748,7 +740,7 @@ export default function ShipperEditPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Label variant="caption" className="flex items-center gap-1">
                         Código interno
                         <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
                           {form.codigoInterno.length}/30
@@ -795,7 +787,7 @@ export default function ShipperEditPage() {
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Label variant="caption" className="flex items-center gap-1">
                         Nombre del encargado
                         <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
                           {form.nombreEncargado.length}/80
@@ -828,15 +820,15 @@ export default function ShipperEditPage() {
                     {row.telefonos.map((t) => (
                       <div
                         key={t.id}
-                        className={`group flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors ${
+                        className={`group flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors ease-claude ${
                           t.esPrincipal
-                            ? 'border-amber-500/40 bg-amber-500/5'
-                            : 'border-border/40 bg-background/40 hover:bg-accent/30'
+                            ? 'border-warning/40 bg-warning/5'
+                            : 'border-border/40 bg-background/40 hover:bg-muted'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           {t.esPrincipal && (
-                            <Star className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                            <Star className="h-3.5 w-3.5 text-warning shrink-0" />
                           )}
                           <span className="font-mono text-sm truncate">{t.numero}</span>
                           {t.etiqueta && (
@@ -847,7 +839,7 @@ export default function ShipperEditPage() {
                           {t.esPrincipal && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400 shrink-0"
+                              className="text-[10px] border-warning/40 text-warning shrink-0"
                             >
                               Principal
                             </Badge>
@@ -927,7 +919,7 @@ export default function ShipperEditPage() {
                     {row.direcciones.map((d) => (
                       <div
                         key={d.id}
-                        className="group flex items-start justify-between rounded-lg border border-border/40 bg-background/40 p-3 hover:border-primary/30 transition-colors"
+                        className="group flex items-start justify-between rounded-lg border border-border/40 bg-background/40 p-3 hover:border-accent/40 transition-colors ease-claude"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm">{d.direccion || '—'}</p>
@@ -1002,22 +994,22 @@ export default function ShipperEditPage() {
               <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 px-6 py-3">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
                   {!isValid ? (
-                    <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1.5 text-warning">
                       <AlertCircle className="h-4 w-4" />
                       <span className="truncate">Falta el nombre del shipper</span>
                     </span>
                   ) : isDatosDirty ? (
-                    <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1.5 text-warning">
                       <AlertCircle className="h-4 w-4" />
                       <span className="truncate">Cambios sin guardar en datos generales</span>
                     </span>
                   ) : isAnyEditing ? (
-                    <span className="inline-flex items-center gap-1.5 text-sky-600 dark:text-sky-400">
+                    <span className="inline-flex items-center gap-1.5 text-info">
                       <AlertCircle className="h-4 w-4" />
                       <span className="truncate">Edición de subentidad en progreso</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1.5 text-success">
                       <CheckCircle2 className="h-4 w-4" />
                       <span className="truncate">Sin cambios pendientes</span>
                     </span>
@@ -1035,11 +1027,13 @@ export default function ShipperEditPage() {
                   <Button
                     size="sm"
                     onClick={() => submitDatos()}
-                    disabled={submitting || !isValid || !isDatosDirty}
+                    disabled={!isValid || !isDatosDirty}
+                    loading={submitting}
+                    loadingText="Guardando…"
                     className="gap-1.5 min-w-[140px]"
                   >
                     <Save className="h-3.5 w-3.5" />
-                    {submitting ? 'Guardando…' : 'Guardar datos'}
+                    Guardar datos
                   </Button>
                 </div>
               </div>

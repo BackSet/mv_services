@@ -243,22 +243,22 @@ export default function PermisoNewPage() {
         <form id="permiso-new-form" onSubmit={submit} className="max-w-4xl mx-auto p-6 space-y-6 pb-32">
           {/* Banner de progreso */}
           <div
-            className={`rounded-xl border p-3 flex items-start gap-3 transition-colors ${
+            className={`rounded-xl border p-3 flex items-start gap-3 transition-colors ease-claude shadow-soft ${
               isValid
-                ? 'border-emerald-500/30 bg-emerald-500/5'
-                : 'border-amber-500/30 bg-amber-500/5'
+                ? 'border-success/30 bg-success/5'
+                : 'border-warning/30 bg-warning/5'
             }`}
           >
             {isValid ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
             ) : (
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
             )}
             <div className="text-xs space-y-0.5 min-w-0">
-              <p className={`font-medium ${isValid ? 'text-emerald-900 dark:text-emerald-200' : 'text-amber-900 dark:text-amber-200'}`}>
+              <p className={`font-medium ${isValid ? 'text-success' : 'text-warning'}`}>
                 {isValid ? 'Listo para guardar' : 'Completa la información'}
               </p>
-              <p className={isValid ? 'text-emerald-800 dark:text-emerald-300/90' : 'text-amber-800 dark:text-amber-300/90'}>
+              <p className={isValid ? 'text-success/90' : 'text-warning/90'}>
                 {isValid
                   ? `Se creará el permiso "${nombreNorm}" en el módulo "${getModuloLabel(moduloPreview)}".`
                   : 'Define el nombre del permiso usando el constructor o escríbelo manualmente.'}
@@ -286,7 +286,7 @@ export default function PermisoNewPage() {
               <div className="space-y-4">
                 {/* Módulos sugeridos */}
                 <div className="space-y-2">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                  <Label variant="caption" className="inline-flex items-center gap-1.5">
                     <Layers className="h-3 w-3" />
                     Módulo
                   </Label>
@@ -296,10 +296,10 @@ export default function PermisoNewPage() {
                         key={m}
                         type="button"
                         onClick={() => setModuloSel(m)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors ease-claude ${
                           moduloSel === m
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'border-border bg-background hover:border-primary/40 hover:bg-accent'
+                            ? 'bg-accent text-accent-foreground border-accent'
+                            : 'border-border bg-background hover:border-accent/40 hover:bg-accent-soft/40'
                         }`}
                       >
                         {m}
@@ -318,7 +318,7 @@ export default function PermisoNewPage() {
 
                 {/* Acciones sugeridas */}
                 <div className="space-y-2">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-1.5">
+                  <Label variant="caption" className="inline-flex items-center gap-1.5">
                     <KeyRound className="h-3 w-3" />
                     Acción
                   </Label>
@@ -328,10 +328,10 @@ export default function PermisoNewPage() {
                         key={a.value}
                         type="button"
                         onClick={() => setAccionSel(a.value)}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors inline-flex items-center gap-1.5 ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-mono border transition-colors ease-claude inline-flex items-center gap-1.5 ${
                           accionSel === a.value
                             ? `${accionBadgeClass(a.tone)} ring-1 ring-current`
-                            : 'border-border bg-background hover:border-primary/40 hover:bg-accent'
+                            : 'border-border bg-background hover:border-accent/40 hover:bg-accent-soft/40'
                         }`}
                       >
                         {a.value}
@@ -354,7 +354,7 @@ export default function PermisoNewPage() {
                   <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Resultado:</span>
                   <Badge
                     variant="outline"
-                    className={`font-mono text-[11px] ${moduloSel && accionSel ? 'border-primary/40' : 'opacity-50'}`}
+                    className={`font-mono text-[11px] ${moduloSel && accionSel ? 'border-accent/40' : 'opacity-50'}`}
                   >
                     {moduloSel || 'MODULO'}_{accionSel || 'ACCION'}
                   </Badge>
@@ -384,9 +384,9 @@ export default function PermisoNewPage() {
             <div className="space-y-5">
               {/* Nombre */}
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Nombre técnico *
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {nombre.length}/{NOMBRE_MAX}
                   </span>
                 </Label>
@@ -465,10 +465,10 @@ export default function PermisoNewPage() {
 
               {/* Descripción */}
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Descripción
-                  <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="text-muted-foreground/60 normal-case font-normal tracking-normal">(opcional)</span>
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {descripcion.length}/{DESC_MAX}
                   </span>
                 </Label>
@@ -522,14 +522,14 @@ export default function PermisoNewPage() {
             <div className="flex items-center gap-2 min-w-0 text-xs">
               {isValid ? (
                 <>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                   <span className="text-muted-foreground truncate">
                     Listo: <span className="font-mono text-foreground">{nombreNorm}</span>
                   </span>
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
                   <span className="text-muted-foreground truncate">
                     {errors.nombre ?? errors.descripcion ?? 'Completa los datos requeridos'}
                   </span>

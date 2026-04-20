@@ -25,6 +25,7 @@ import {
   type Permiso,
 } from '@/services/roles.service';
 import { PermisosSelector } from '@/components/roles/PermisosSelector';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
@@ -220,10 +221,10 @@ export default function RolNewPage() {
           className="max-w-4xl mx-auto p-6 space-y-6 pb-32"
         >
           {/* Banner de progreso */}
-          <div className="rounded-xl border border-border bg-card/50 p-4">
+          <div className="rounded-xl border border-border bg-card/50 p-4 shadow-soft">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent-soft-foreground">
                   <Shield className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
@@ -234,21 +235,14 @@ export default function RolNewPage() {
                 </div>
               </div>
               <Badge
-                variant="outline"
-                className={
-                  progreso === 100
-                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                    : progreso >= 50
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                    : ''
-                }
+                variant={progreso === 100 ? 'success' : progreso >= 50 ? 'warning' : 'outline'}
               >
                 {progreso === 100 ? 'Listo para guardar' : `${progreso}% completo`}
               </Badge>
             </div>
             <div className="mt-3 h-1 rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full transition-all ${progreso === 100 ? 'bg-emerald-500' : 'bg-primary'}`}
+                className={`h-full transition-all ease-claude ${progreso === 100 ? 'bg-success' : 'bg-accent'}`}
                 style={{ width: `${progreso}%` }}
               />
             </div>
@@ -258,9 +252,9 @@ export default function RolNewPage() {
           <SectionCard icon={Info} iconColor="blue" title="Información general">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Nombre <span className="text-destructive">*</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {nombre.length}/50
                   </span>
                 </Label>
@@ -298,17 +292,21 @@ export default function RolNewPage() {
             title="Permisos del rol"
             description="Selecciona qué acciones podrá realizar este rol en el sistema."
             right={
-              <Badge
-                variant="outline"
-                className="text-[10px] gap-1 bg-violet-500/5 border-violet-500/30 text-violet-700 dark:text-violet-400 tabular-nums"
-              >
+              <Badge variant="brand" className="text-[10px] gap-1 tabular-nums">
                 <KeyRound className="h-2.5 w-2.5" />
                 {selectedIds.length}
               </Badge>
             }
           >
             {loadingCatalogos ? (
-              <p className="text-sm text-muted-foreground">Cargando permisos…</p>
+              <div className="space-y-2" role="status" aria-label="Cargando permisos">
+                <Skeleton className="h-9 w-full" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              </div>
             ) : (
               <PermisosSelector
                 permisos={permisos}
@@ -335,12 +333,12 @@ export default function RolNewPage() {
             <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
               {isValid ? (
                 selectedIds.length === 0 ? (
-                  <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1.5 text-warning">
                     <AlertCircle className="h-4 w-4" />
                     <span className="truncate">Sin permisos · el rol no podrá hacer nada en el sistema</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                  <span className="inline-flex items-center gap-1.5 text-success">
                     <CheckCircle2 className="h-4 w-4" />
                     <span className="truncate">
                       Listo · {selectedIds.length} permiso{selectedIds.length === 1 ? '' : 's'} seleccionado{selectedIds.length === 1 ? '' : 's'}
@@ -348,7 +346,7 @@ export default function RolNewPage() {
                   </span>
                 )
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center gap-1.5 text-warning">
                   <AlertCircle className="h-4 w-4" />
                   <span className="truncate">
                     {Object.keys(errors).length} campo{Object.keys(errors).length === 1 ? '' : 's'} por completar

@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Kbd } from '@/components/layout/KpiCard';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
-import { LoadingState } from '@/components/states/LoadingState';
+import { FormPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import {
   deletePermiso,
@@ -288,7 +288,7 @@ export default function PermisoEditPage() {
     return (
       <DashboardLayout>
         <StandardPageLayout title="Editar Permiso" icon={<KeyRound className="h-5 w-5" />}>
-          <LoadingState label="Cargando permiso…" />
+          <FormPageSkeleton sections={[3]} />
         </StandardPageLayout>
       </DashboardLayout>
     );
@@ -385,18 +385,18 @@ export default function PermisoEditPage() {
         <form id="permiso-edit-form" onSubmit={submit} className="max-w-4xl mx-auto p-6 space-y-6 pb-32">
           {/* Banner */}
           <div
-            className={`rounded-xl border p-3 flex items-start gap-3 transition-colors ${
+            className={`rounded-xl border p-3 flex items-start gap-3 transition-colors ease-claude shadow-soft ${
               !dirty
                 ? 'border-border/50 bg-muted/30'
                 : isValid
-                ? 'border-amber-500/30 bg-amber-500/5'
+                ? 'border-warning/30 bg-warning/5'
                 : 'border-destructive/30 bg-destructive/5'
             }`}
           >
             {!dirty ? (
               <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             ) : isValid ? (
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
             ) : (
               <XCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
             )}
@@ -406,7 +406,7 @@ export default function PermisoEditPage() {
                   !dirty
                     ? 'text-muted-foreground'
                     : isValid
-                    ? 'text-amber-900 dark:text-amber-200'
+                    ? 'text-warning'
                     : 'text-destructive'
                 }`}
               >
@@ -426,7 +426,7 @@ export default function PermisoEditPage() {
                   !dirty
                     ? 'text-muted-foreground'
                     : isValid
-                    ? 'text-amber-800 dark:text-amber-300/90'
+                    ? 'text-warning/90'
                     : 'text-destructive/90'
                 }
               >
@@ -452,13 +452,13 @@ export default function PermisoEditPage() {
 
           {/* Aviso si está en uso */}
           {enUso && (
-            <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 flex items-start gap-3">
-              <Shield className="h-4 w-4 text-sky-600 dark:text-sky-400 mt-0.5 shrink-0" />
+            <div className="rounded-xl border border-info/30 bg-info/5 p-3 flex items-start gap-3">
+              <Shield className="h-4 w-4 text-info mt-0.5 shrink-0" />
               <div className="text-xs space-y-1.5 flex-1 min-w-0">
-                <p className="font-medium text-sky-900 dark:text-sky-200">
+                <p className="font-medium text-info">
                   Permiso en uso
                 </p>
-                <p className="text-sky-800 dark:text-sky-300/90">
+                <p className="text-info/90">
                   Está asignado a {relatedRoles.length} rol{relatedRoles.length === 1 ? '' : 'es'} y afecta a {relatedUsuarios.length} usuario{relatedUsuarios.length === 1 ? '' : 's'}. Los cambios se aplicarán a todos.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1">
@@ -467,14 +467,14 @@ export default function PermisoEditPage() {
                       key={r.id}
                       type="button"
                       onClick={() => navigate(`/roles/${r.id}`)}
-                      className="px-2 py-0.5 rounded-md text-[10px] bg-background border border-sky-500/30 hover:bg-sky-500/10 inline-flex items-center gap-1"
+                      className="px-2 py-0.5 rounded-md text-[10px] bg-background border border-info/30 hover:bg-info/10 inline-flex items-center gap-1 transition-colors ease-claude"
                     >
                       <Shield className="h-2.5 w-2.5" />
                       {r.nombre}
                     </button>
                   ))}
                   {relatedRoles.length > 5 && (
-                    <span className="text-[10px] text-sky-700 dark:text-sky-400 px-1">
+                    <span className="text-[10px] text-info px-1">
                       +{relatedRoles.length - 5} más
                     </span>
                   )}
@@ -485,13 +485,13 @@ export default function PermisoEditPage() {
 
           {/* Aviso de cambio de módulo */}
           {dirty && moduloChange && originalNombreNorm && nombreNorm && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-3">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="rounded-xl border border-warning/40 bg-warning/5 p-3 flex items-start gap-3">
+              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
               <div className="text-xs space-y-0.5 min-w-0">
-                <p className="font-medium text-amber-900 dark:text-amber-200">
+                <p className="font-medium text-warning">
                   Estás cambiando el módulo del permiso
                 </p>
-                <p className="text-amber-800 dark:text-amber-300/90">
+                <p className="text-warning/90">
                   De <span className="font-mono font-medium">{getModuloLabel(moduloOriginalKey)}</span> a{' '}
                   <span className="font-mono font-medium">{getModuloLabel(moduloNuevoKey)}</span>. Asegúrate de que esto sea intencional.
                 </p>
@@ -509,14 +509,14 @@ export default function PermisoEditPage() {
             <div className="space-y-5">
               {/* Nombre */}
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Nombre técnico *
                   {nombre !== initialRef.current.nombre && (
                     <Badge variant="outline" className="ml-1 text-[9px] py-0 px-1 h-4">
                       Modificado
                     </Badge>
                   )}
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {nombre.length}/{NOMBRE_MAX}
                   </span>
                 </Label>
@@ -596,15 +596,15 @@ export default function PermisoEditPage() {
 
               {/* Descripción */}
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Descripción
-                  <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
+                  <span className="text-muted-foreground/60 normal-case font-normal tracking-normal">(opcional)</span>
                   {descripcion !== initialRef.current.descripcion && (
                     <Badge variant="outline" className="ml-1 text-[9px] py-0 px-1 h-4">
                       Modificado
                     </Badge>
                   )}
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {descripcion.length}/{DESC_MAX}
                   </span>
                 </Label>
@@ -651,7 +651,7 @@ export default function PermisoEditPage() {
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-lg border border-border/50 bg-background p-3">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                     <Shield className="h-3 w-3" />
                     Roles
                   </div>
@@ -662,7 +662,7 @@ export default function PermisoEditPage() {
                           key={r.id}
                           type="button"
                           onClick={() => navigate(`/roles/${r.id}`)}
-                          className="px-2 py-0.5 rounded-md text-[10px] bg-muted hover:bg-accent border border-transparent hover:border-border inline-flex items-center gap-1"
+                          className="px-2 py-0.5 rounded-md text-[10px] bg-muted hover:bg-muted/70 border border-transparent hover:border-border inline-flex items-center gap-1"
                         >
                           <Shield className="h-2.5 w-2.5" />
                           {r.nombre}
@@ -679,7 +679,7 @@ export default function PermisoEditPage() {
                   )}
                 </div>
                 <div className="rounded-lg border border-border/50 bg-background p-3">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2 inline-flex items-center gap-1.5">
                     <Users className="h-3 w-3" />
                     Usuarios
                   </div>
@@ -690,7 +690,7 @@ export default function PermisoEditPage() {
                           key={u.id}
                           type="button"
                           onClick={() => navigate(`/usuarios/${u.id}`)}
-                          className="px-2 py-0.5 rounded-md text-[10px] bg-muted hover:bg-accent border border-transparent hover:border-border inline-flex items-center gap-1"
+                          className="px-2 py-0.5 rounded-md text-[10px] bg-muted hover:bg-muted/70 border border-transparent hover:border-border inline-flex items-center gap-1"
                         >
                           <Users className="h-2.5 w-2.5" />
                           {u.username}
@@ -732,7 +732,7 @@ export default function PermisoEditPage() {
                 </>
               ) : isValid ? (
                 <>
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
                   <span className="text-muted-foreground truncate">
                     Cambios pendientes de guardar
                   </span>

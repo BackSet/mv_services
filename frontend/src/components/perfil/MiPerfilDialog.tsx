@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  Loader2,
   Lock,
   Mail,
   Save,
@@ -26,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useMe, setMeCache } from '@/hooks/useMe';
 import {
   changeMyPassword,
@@ -57,11 +57,11 @@ function evaluatePassword(pw: string): Strength {
   const clamped = Math.min(4, score) as 0 | 1 | 2 | 3 | 4;
   const labels = ['Muy débil', 'Débil', 'Aceptable', 'Fuerte', 'Muy fuerte'];
   const colors = [
-    'bg-red-500',
-    'bg-orange-500',
-    'bg-amber-500',
-    'bg-emerald-500',
-    'bg-emerald-600',
+    'bg-destructive',
+    'bg-warning',
+    'bg-warning',
+    'bg-success',
+    'bg-success',
   ];
   return { score: clamped, label: labels[clamped], color: colors[clamped] };
 }
@@ -264,20 +264,20 @@ export default function MiPerfilDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden gap-0">
-        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/50 bg-gradient-to-b from-muted/30 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary/80 to-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-sm">
+      <DialogContent className="max-w-xl !p-0 overflow-hidden gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/60 bg-muted/30 space-y-0">
+          <div className="flex items-center gap-3.5">
+            <div className="h-12 w-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold shadow-soft ring-2 ring-accent/20 shrink-0">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base">Mi cuenta</DialogTitle>
-              <DialogDescription className="text-xs">
+              <DialogTitle className="font-serif text-2xl leading-tight">Mi cuenta</DialogTitle>
+              <DialogDescription>
                 Gestiona tus datos personales{isShipper ? ' y la información de tu shipper' : ''}.
               </DialogDescription>
             </div>
             {me?.rol && (
-              <Badge variant="outline" className="text-[10px] uppercase">
+              <Badge variant="brand" className="text-[10px] uppercase tracking-wider">
                 <Shield className="h-3 w-3 mr-1" /> {me.rol}
               </Badge>
             )}
@@ -285,8 +285,8 @@ export default function MiPerfilDialog({
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="px-5 pt-3">
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl border border-border/50 bg-muted/20">
+        <div className="px-6 pt-4 border-b border-border/60">
+          <div className="inline-flex items-center gap-0.5 -mb-px">
             {tabs.filter((t) => t.show).map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
@@ -296,13 +296,13 @@ export default function MiPerfilDialog({
                   type="button"
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    'inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-all',
+                    'relative inline-flex items-center gap-2 h-10 px-4 text-[13px] font-medium transition-colors border-b-2',
                     active
-                      ? 'bg-background shadow-sm text-foreground border border-border/60'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
+                      ? 'text-foreground border-accent'
+                      : 'text-muted-foreground hover:text-foreground border-transparent',
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className={cn('h-3.5 w-3.5', active && 'text-accent')} />
                   {t.label}
                 </button>
               );
@@ -310,7 +310,7 @@ export default function MiPerfilDialog({
           </div>
         </div>
 
-        <div className="px-5 py-5 max-h-[60vh] overflow-y-auto">
+        <div className="px-6 py-6 max-h-[60vh] overflow-y-auto">
           {tab === 'perfil' && (
             <form onSubmit={onSavePerfil} className="space-y-4">
               {perfilError && (
@@ -321,18 +321,18 @@ export default function MiPerfilDialog({
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="me-username" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Usuario <span className="text-destructive">*</span>
+                <Label htmlFor="me-username" variant="form">
+                  Usuario <span className="text-accent">*</span>
                 </Label>
                 <div className="relative">
-                  <UserIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <UserIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                   <Input
                     id="me-username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="usuario"
                     autoComplete="username"
-                    className={cn('pl-9 h-9', perfilErrors.username && 'border-destructive focus-visible:ring-destructive')}
+                    className={cn('pl-10 h-11', perfilErrors.username && 'border-destructive focus-visible:ring-destructive/40')}
                   />
                 </div>
                 {perfilErrors.username ? (
@@ -347,11 +347,11 @@ export default function MiPerfilDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="me-email" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Email <span className="text-destructive">*</span>
+                <Label htmlFor="me-email" variant="form">
+                  Email <span className="text-accent">*</span>
                 </Label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
                   <Input
                     id="me-email"
                     type="email"
@@ -359,7 +359,7 @@ export default function MiPerfilDialog({
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@ejemplo.com"
                     autoComplete="email"
-                    className={cn('pl-9 h-9', perfilErrors.email && 'border-destructive focus-visible:ring-destructive')}
+                    className={cn('pl-10 h-11', perfilErrors.email && 'border-destructive focus-visible:ring-destructive/40')}
                   />
                 </div>
                 {perfilErrors.email && (
@@ -369,18 +369,24 @@ export default function MiPerfilDialog({
                 )}
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-border/40">
+              <div className="flex items-center justify-between pt-3 border-t border-border/60">
                 <div className="text-[11px] text-muted-foreground">
                   {perfilDirty ? (
-                    <span className="text-amber-600 dark:text-amber-400 inline-flex items-center gap-1">
+                    <span className="text-accent inline-flex items-center gap-1 font-medium">
                       <Sparkles className="h-3 w-3" /> Cambios sin guardar
                     </span>
                   ) : (
                     'Sin cambios'
                   )}
                 </div>
-                <Button type="submit" size="sm" disabled={!perfilDirty || !perfilValid || savingPerfil}>
-                  {savingPerfil ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!perfilDirty || !perfilValid}
+                  loading={savingPerfil}
+                  loadingText="Guardando…"
+                >
+                  <Save className="h-4 w-4 mr-1.5" />
                   Guardar cambios
                 </Button>
               </div>
@@ -421,7 +427,7 @@ export default function MiPerfilDialog({
               />
 
               {newPassword && (
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <div className="flex h-1 gap-1">
                     {[0, 1, 2, 3].map((i) => (
                       <div
@@ -452,7 +458,7 @@ export default function MiPerfilDialog({
                 rightIcon={
                   confirmPassword ? (
                     passwordsMatch ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-destructive" />
                     )
@@ -460,9 +466,15 @@ export default function MiPerfilDialog({
                 }
               />
 
-              <div className="flex items-center justify-end pt-2 border-t border-border/40">
-                <Button type="submit" size="sm" disabled={!passwordValid || savingPassword}>
-                  {savingPassword ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Lock className="h-4 w-4 mr-1.5" />}
+              <div className="flex items-center justify-end pt-3 border-t border-border/60">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!passwordValid}
+                  loading={savingPassword}
+                  loadingText="Cambiando…"
+                >
+                  <Lock className="h-4 w-4 mr-1.5" />
                   Cambiar contraseña
                 </Button>
               </div>
@@ -478,22 +490,30 @@ export default function MiPerfilDialog({
                 </div>
               )}
               {loadingShipper ? (
-                <div className="flex items-center justify-center py-6 text-muted-foreground text-sm">
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Cargando datos del shipper…
+                <div role="status" aria-label="Cargando datos del shipper" className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="space-y-1.5">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-11 w-full" />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>
                   <div className="space-y-1.5">
-                    <Label htmlFor="me-sh-nombre" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Nombre <span className="text-destructive">*</span>
+                    <Label htmlFor="me-sh-nombre" variant="form">
+                      Nombre <span className="text-accent">*</span>
                     </Label>
-                    <Input
-                      id="me-sh-nombre"
-                      value={shipperNombre}
-                      onChange={(e) => setShipperNombre(e.target.value)}
-                      placeholder="Nombre del shipper"
-                      className={cn('h-9', shipperErrors.nombre && 'border-destructive focus-visible:ring-destructive')}
-                    />
+                    <div className="relative">
+                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+                      <Input
+                        id="me-sh-nombre"
+                        value={shipperNombre}
+                        onChange={(e) => setShipperNombre(e.target.value)}
+                        placeholder="Nombre del shipper"
+                        className={cn('pl-10 h-11', shipperErrors.nombre && 'border-destructive focus-visible:ring-destructive/40')}
+                      />
+                    </div>
                     {shipperErrors.nombre && (
                       <p className="text-[11px] text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" /> {shipperErrors.nombre}
@@ -503,7 +523,7 @@ export default function MiPerfilDialog({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="me-sh-codigo" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <Label htmlFor="me-sh-codigo" variant="form">
                         Código interno
                       </Label>
                       <Input
@@ -511,11 +531,11 @@ export default function MiPerfilDialog({
                         value={codigoInterno}
                         onChange={(e) => setCodigoInterno(e.target.value)}
                         placeholder="Ej: SHP-1234"
-                        className="h-9 font-mono"
+                        className="h-11 font-mono"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="me-sh-encargado" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <Label htmlFor="me-sh-encargado" variant="form">
                         Encargado
                       </Label>
                       <Input
@@ -523,14 +543,20 @@ export default function MiPerfilDialog({
                         value={nombreEncargado}
                         onChange={(e) => setNombreEncargado(e.target.value)}
                         placeholder="Nombre del encargado"
-                        className="h-9"
+                        className="h-11"
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end pt-2 border-t border-border/40">
-                    <Button type="submit" size="sm" disabled={!shipperValid || savingShipper}>
-                      {savingShipper ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+                  <div className="flex items-center justify-end pt-3 border-t border-border/60">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!shipperValid}
+                      loading={savingShipper}
+                      loadingText="Guardando…"
+                    >
+                      <Save className="h-4 w-4 mr-1.5" />
                       Guardar shipper
                     </Button>
                   </div>
@@ -569,11 +595,11 @@ function PasswordField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-        {label}{required && <span className="text-destructive ml-0.5">*</span>}
+      <Label htmlFor={id} variant="form">
+        {label}{required && <span className="text-accent ml-0.5">*</span>}
       </Label>
       <div className="relative">
-        <Lock className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
         <Input
           id={id}
           type={show ? 'text' : 'password'}
@@ -581,7 +607,7 @@ function PasswordField({
           onChange={(e) => onChange(e.target.value)}
           autoComplete={autoComplete}
           placeholder="••••••••"
-          className={cn('pl-9 pr-16 h-9', error && 'border-destructive focus-visible:ring-destructive')}
+          className={cn('pl-10 pr-16 h-11', error && 'border-destructive focus-visible:ring-destructive/40')}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {rightIcon}
@@ -589,7 +615,7 @@ function PasswordField({
             type="button"
             onClick={onToggle}
             tabIndex={-1}
-            className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             aria-label={show ? 'Ocultar' : 'Mostrar'}
           >
             {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

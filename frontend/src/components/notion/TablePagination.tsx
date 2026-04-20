@@ -20,16 +20,18 @@ export default function TablePagination({
   const end = Math.min(page * pageSize, totalItems);
 
   return (
-    <div className={cn('flex items-center justify-between gap-4 py-3 text-sm text-muted-foreground', className)}>
+    <div className={cn('flex items-center justify-between gap-4 py-4 mt-2 border-t border-border/60 text-sm text-muted-foreground tabular-nums', className)}>
       <span>
-        Mostrando {start}–{end} de {totalItems}
+        Mostrando <strong className="text-foreground font-medium">{start}</strong>–
+        <strong className="text-foreground font-medium">{end}</strong> de{' '}
+        <strong className="text-foreground font-medium">{totalItems}</strong>
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           type="button"
           onClick={() => onPageChange(1)}
           disabled={page <= 1}
-          className="p-1.5 rounded hover:bg-muted/70 hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Primera página"
         >
           <ChevronsLeft className="w-4 h-4" />
@@ -38,19 +40,19 @@ export default function TablePagination({
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-1.5 rounded hover:bg-muted/70 hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Página anterior"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="min-w-[4rem] text-center font-medium text-foreground">
-          {page}/{totalPages || 1}
+        <span className="min-w-[4.5rem] text-center font-medium text-foreground px-2">
+          {page} / {totalPages || 1}
         </span>
         <button
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages || totalPages === 0}
-          className="p-1.5 rounded hover:bg-muted/70 hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Página siguiente"
         >
           <ChevronRight className="w-4 h-4" />
@@ -59,7 +61,7 @@ export default function TablePagination({
           type="button"
           onClick={() => onPageChange(totalPages)}
           disabled={page >= totalPages || totalPages === 0}
-          className="p-1.5 rounded hover:bg-muted/70 hover:text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           aria-label="Última página"
         >
           <ChevronsRight className="w-4 h-4" />

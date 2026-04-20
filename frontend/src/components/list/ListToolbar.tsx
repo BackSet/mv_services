@@ -45,16 +45,16 @@ export function ListToolbar({
   }
 
   return (
-    <div className={cn('flex flex-col gap-4 p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60', className)}>
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+    <div className={cn('flex flex-col gap-4 py-5 border-b border-border/60', className)}>
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         {onSearchChange && (
-          <div className="relative w-full sm:max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
             <Input
               placeholder={searchPlaceholder}
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="pl-9 pr-8 h-9"
+              className="pl-10 pr-9"
               {...searchInputProps}
             />
             {localSearch && (
@@ -63,7 +63,7 @@ export function ListToolbar({
                 aria-label="Limpiar búsqueda"
                 onClick={handleClearSearch}
                 onPointerDown={(e) => e.preventDefault()}
-                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-1 focus:ring-ring"
+                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -71,9 +71,9 @@ export function ListToolbar({
           </div>
         )}
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end">
           {filters && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {filters}
             </div>
           )}

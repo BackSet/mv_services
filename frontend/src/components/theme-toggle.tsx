@@ -25,7 +25,7 @@ export function ThemeToggle({ className }: { className?: string }) {
           variant="ghost"
           size="icon"
           className={cn(
-            "h-8 w-8 rounded-lg border border-border/60 bg-background/80 text-foreground shadow-sm hover:bg-accent hover:text-foreground",
+            "h-8 w-8 rounded-lg border border-border/60 bg-background/80 text-foreground shadow-sm hover:bg-muted hover:text-foreground",
             className
           )}
           aria-label={`Tema actual: ${currentLabel}`}

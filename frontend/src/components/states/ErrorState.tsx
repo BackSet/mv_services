@@ -18,16 +18,20 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/5 p-8 text-center',
-        className
+        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-destructive/30 bg-destructive/5 px-10 py-16 text-center',
+        className,
       )}
     >
-      <div className="h-11 w-11 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+      <div className="h-12 w-12 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive">
         {icon ?? <AlertTriangle className="h-5 w-5" />}
       </div>
-      <div className="mt-3 text-sm font-medium text-foreground">{title}</div>
-      {description ? <div className="mt-1 text-xs text-muted-foreground max-w-sm">{description}</div> : null}
-      {action ? <div className="mt-4">{action}</div> : null}
+      <div className="mt-4 font-serif text-lg tracking-tight text-foreground">{title}</div>
+      {description ? (
+        <div className="mt-1.5 text-sm text-muted-foreground max-w-md leading-relaxed">
+          {description}
+        </div>
+      ) : null}
+      {action ? <div className="mt-6">{action}</div> : null}
     </div>
   )
 }

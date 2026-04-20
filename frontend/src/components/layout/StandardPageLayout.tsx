@@ -33,14 +33,14 @@ export function StandardPageLayout({
       width={width}
       spacing={spacing}
       className={cn(
-        'w-full flex-1 flex flex-col min-h-0 overflow-hidden bg-gradient-to-br from-background via-background to-muted/20',
-        className
+        'w-full flex-1 flex flex-col min-h-0 overflow-hidden bg-background',
+        className,
       )}
     >
       <div
         className={cn(
-          'px-4 sm:px-6 py-4 border-b border-border/30 bg-background/70 backdrop-blur-xl z-10 shrink-0',
-          headerClassName
+          'px-6 sm:px-8 lg:px-10 py-6 border-b border-border/60 bg-background/85 backdrop-blur-xl z-10 shrink-0',
+          headerClassName,
         )}
       >
         <PageHeader
@@ -49,12 +49,12 @@ export function StandardPageLayout({
           subtitle={subtitle}
           actions={actions}
           className={cn(
-            'pb-0 border-b-0 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4',
-            pageHeaderClassName
+            'pb-0 border-b-0 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4',
+            pageHeaderClassName,
           )}
         />
       </div>
-      <div className="flex-1 min-h-0 overflow-auto px-4 sm:px-6">
+      <div className="flex-1 min-h-0 overflow-auto px-6 sm:px-8 lg:px-10">
         {children}
       </div>
     </PageContainer>

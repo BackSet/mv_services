@@ -20,7 +20,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { DetailPageLayout } from '@/components/detail/DetailPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
-import { LoadingState } from '@/components/states/LoadingState';
+import { DetailPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,7 @@ function CopyBtn({ text, label, className = '' }: { text: string; label: string;
         e.stopPropagation();
         copy(text, label);
       }}
-      className={`h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent transition-colors ${className}`}
+      className={`h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted transition-colors ${className}`}
       title={`Copiar ${label.toLowerCase()}`}
       aria-label={`Copiar ${label.toLowerCase()}`}
     >
@@ -68,9 +68,9 @@ function getInitials(name: string): string {
 
 function rolBadgeClass(rol: string | null | undefined): string {
   const r = (rol ?? '').toUpperCase();
-  if (r.includes('ADMIN')) return 'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30';
-  if (r.includes('OPERA')) return 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30';
-  if (r.includes('SHIPPER')) return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30';
+  if (r.includes('ADMIN')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
+  if (r.includes('OPERA')) return 'bg-info/15 text-info border-info/30';
+  if (r.includes('SHIPPER')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
   return 'bg-muted/40 text-muted-foreground border-border/50';
 }
 
@@ -203,7 +203,7 @@ export default function UsuarioViewPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando usuario..." />
+          <DetailPageSkeleton kpis={3} sections={[3]} />
         ) : error ? (
           <ErrorState title="Error al cargar usuario" description={error} />
         ) : !row ? (
@@ -213,7 +213,7 @@ export default function UsuarioViewPage() {
             {/* Banner identificativo */}
             <div className="rounded-xl border border-border bg-gradient-to-r from-primary/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary text-base font-semibold">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground text-base font-semibold">
                   {getInitials(row.username || row.email || '?')}
                 </span>
                 <div className="min-w-0">
@@ -221,10 +221,7 @@ export default function UsuarioViewPage() {
                     <span className="text-base font-semibold truncate">{row.username}</span>
                     <Badge variant="outline" className="text-[10px] font-mono">#{row.id}</Badge>
                     {isSelf && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] bg-primary/10 text-primary border-primary/30"
-                      >
+                      <Badge variant="brand" className="text-[10px]">
                         Tu cuenta
                       </Badge>
                     )}
@@ -243,18 +240,12 @@ export default function UsuarioViewPage() {
               </div>
               <div className="flex items-center gap-2 sm:shrink-0">
                 {row.activo ? (
-                  <Badge
-                    variant="outline"
-                    className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
-                  >
+                  <Badge variant="success" className="gap-1">
                     <CheckCircle2 className="h-3 w-3" />
                     Activo
                   </Badge>
                 ) : (
-                  <Badge
-                    variant="outline"
-                    className="bg-muted/40 text-muted-foreground border-border/50 gap-1"
-                  >
+                  <Badge variant="secondary" className="gap-1">
                     <XCircle className="h-3 w-3" />
                     Inactivo
                   </Badge>
@@ -336,7 +327,7 @@ export default function UsuarioViewPage() {
                   <div className="mt-2 flex items-center gap-2">
                     {row.activo ? (
                       <>
-                        <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                        <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-success/15 px-2.5 text-xs font-medium text-success border border-success/30">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Activo
                         </span>
@@ -368,7 +359,7 @@ export default function UsuarioViewPage() {
                         {row.rol.nombre}
                       </Badge>
                     ) : (
-                      <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 text-xs font-medium text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                      <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-warning/15 px-2.5 text-xs font-medium text-warning border border-warning/30">
                         <Shield className="h-3.5 w-3.5" />
                         Sin rol asignado
                       </span>

@@ -12,7 +12,7 @@ import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
 import { PageContent } from '@/components/layout/PageContent';
-import { LoadingState } from '@/components/states/LoadingState';
+import { DetailPageSkeleton, TableSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import NotionTable from '@/components/notion/NotionTable';
 import type { SortState } from '@/components/notion/NotionTable';
@@ -434,6 +434,7 @@ export default function ConsolidadoViewPage() {
   const imprimirTodas = () => {
     if (paquetesDelConsolidado.length === 0) return;
     const consolidadoGuia = row?.numeroGuia ?? (id ? `#${id}` : null);
+    const total = paquetesDelConsolidado.length;
     const labels = paquetesDelConsolidado.map((p) => ({
       numeroGuia: p.numeroGuia,
       shipperNombre: p.shipper?.nombre ?? null,
@@ -444,8 +445,15 @@ export default function ConsolidadoViewPage() {
       pesoKgs: p.pesoKgs ?? null,
       contenido: p.contenido ?? null,
       consolidadoGuia,
+      posicionEnConsolidado: p.posicionEnConsolidado ?? null,
+      totalEnConsolidado: total,
     }));
-    printPackageLabels(labels, { title: `Etiquetas · Consolidado ${consolidadoGuia ?? id}` });
+    void printPackageLabels(labels, {
+      title: `Etiquetas · Consolidado ${consolidadoGuia ?? id}`,
+      pageSize: '4x6',
+      mode: 'thermal',
+      withQR: true,
+    });
   };
 
   // Atajos de teclado
@@ -554,7 +562,7 @@ export default function ConsolidadoViewPage() {
         />
 
         {loading ? (
-          <div className="py-8"><LoadingState label="Cargando consolidado..." /></div>
+          <DetailPageSkeleton kpis={4} sections={[3, 3]} />
         ) : error ? (
           <div className="py-8"><ErrorState title="Error" description={error} /></div>
         ) : !row ? (
@@ -564,19 +572,19 @@ export default function ConsolidadoViewPage() {
             {/* --- Banner de estado contextual --- */}
             <div
               className={
-                'rounded-xl border px-4 py-3 flex flex-wrap items-center justify-between gap-3 ' +
+                'rounded-xl border px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-soft ' +
                 (isCerrado
-                  ? 'border-emerald-500/30 bg-emerald-500/5'
-                  : 'border-amber-500/30 bg-amber-500/5')
+                  ? 'border-success/30 bg-success/5'
+                  : 'border-warning/30 bg-warning/5')
               }
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={
-                    'h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ' +
+                    'h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ' +
                     (isCerrado
-                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-amber-500/15 text-amber-600 dark:text-amber-400')
+                      ? 'bg-success/15 text-success'
+                      : 'bg-warning/15 text-warning')
                   }
                 >
                   {isCerrado ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
@@ -602,7 +610,7 @@ export default function ConsolidadoViewPage() {
                   <button
                     type="button"
                     onClick={() => copiarTexto(row.numeroGuia, 'Guía')}
-                    className="h-6 w-6 rounded border border-transparent hover:border-border hover:bg-accent text-muted-foreground hover:text-foreground flex items-center justify-center"
+                    className="h-6 w-6 rounded border border-transparent hover:border-border hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
                     title="Copiar guía"
                   >
                     <Copy className="h-3.5 w-3.5" />
@@ -693,9 +701,9 @@ export default function ConsolidadoViewPage() {
                       </div>
                     </div>
                     {isAbierto && !todosConInfo && (
-                      <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                      <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
+                        <AlertCircle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                        <p className="text-xs text-warning">
                           {paquetesSinInfo.length} paquete{paquetesSinInfo.length !== 1 ? 's' : ''} sin información completa. Complete su información para poder cerrar el consolidado.
                         </p>
                       </div>
@@ -822,14 +830,14 @@ export default function ConsolidadoViewPage() {
                     <Input
                       value={tableSearch}
                       onChange={(e) => setTableSearch(e.target.value)}
-                      placeholder="Filtrar paquetes…"
+                      placeholder="Filtrar por guía, destinatario, ref, contenido o shipper…"
                       className="pl-8 h-8 text-xs"
                     />
                     {tableSearch && (
                       <button
                         type="button"
                         onClick={() => setTableSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded hover:bg-accent flex items-center justify-center text-muted-foreground"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded hover:bg-muted flex items-center justify-center text-muted-foreground"
                         aria-label="Limpiar búsqueda"
                       >
                         <FilterX className="h-3.5 w-3.5" />
@@ -860,7 +868,7 @@ export default function ConsolidadoViewPage() {
 
               <div className="p-6 pt-4">
                 {loadingPaquetes ? (
-                  <LoadingState variant="inline" label="Cargando paquetes..." />
+                  <TableSkeleton rows={6} columns={9} density="compact" />
                 ) : totalPaq === 0 ? (
                   <div className="py-10 text-center">
                     <Boxes className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
@@ -898,7 +906,7 @@ export default function ConsolidadoViewPage() {
                           r.posicionEnConsolidado != null ? (
                             <span
                               title="Posición dentro del consolidado (calculada automáticamente)"
-                              className="inline-flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold tabular-nums"
+                              className="inline-flex items-center justify-center min-w-[28px] h-6 px-1.5 rounded-full bg-accent-soft text-accent-soft-foreground text-[11px] font-semibold tabular-nums"
                             >
                               {r.posicionEnConsolidado}
                             </span>
@@ -917,7 +925,7 @@ export default function ConsolidadoViewPage() {
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); copiarTexto(r.numeroGuia, 'Guía'); }}
-                              className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                              className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                               title="Copiar guía"
                               aria-label="Copiar guía"
                             >
@@ -927,14 +935,32 @@ export default function ConsolidadoViewPage() {
                         ),
                       },
                       {
-                        header: 'SHIPPER',
-                        sortKey: 'shipper',
-                        cell: (r) => r.shipper?.nombre ?? <span className="text-muted-foreground">—</span>,
+                        header: 'ESTADO',
+                        sortKey: 'estado',
+                        className: 'w-[120px]',
+                        cell: (r) => paqueteConInfo(r)
+                          ? (
+                            <Badge variant="outline" className="gap-1 border-success/40 bg-success/15 text-success font-normal">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Completo
+                            </Badge>
+                          )
+                          : (
+                            <Badge variant="outline" className="gap-1 border-warning/40 bg-warning/15 text-warning font-normal">
+                              <AlertCircle className="h-3 w-3" />
+                              Pendiente
+                            </Badge>
+                          ),
                       },
                       {
                         header: 'DESTINATARIO',
                         sortKey: 'destinatario',
                         cell: (r) => r.destinatario || <span className="text-muted-foreground">—</span>,
+                      },
+                      {
+                        header: 'SHIPPER',
+                        sortKey: 'shipper',
+                        cell: (r) => r.shipper?.nombre ?? <span className="text-muted-foreground">—</span>,
                       },
                       {
                         header: 'REF',
@@ -957,24 +983,6 @@ export default function ConsolidadoViewPage() {
                         sortKey: 'pesoKgs',
                         className: 'w-[90px] text-right tabular-nums',
                         cell: (r) => r.pesoKgs != null ? r.pesoKgs.toFixed(2) : <span className="text-muted-foreground">—</span>,
-                      },
-                      {
-                        header: 'ESTADO',
-                        sortKey: 'estado',
-                        className: 'w-[120px]',
-                        cell: (r) => paqueteConInfo(r)
-                          ? (
-                            <Badge variant="outline" className="gap-1 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-normal">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Completo
-                            </Badge>
-                          )
-                          : (
-                            <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-normal">
-                              <AlertCircle className="h-3 w-3" />
-                              Pendiente
-                            </Badge>
-                          ),
                       },
                       {
                         header: '',
@@ -1008,7 +1016,7 @@ export default function ConsolidadoViewPage() {
                               className="h-7 w-7 p-0"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                printPackageLabels([{
+                                void printPackageLabels([{
                                   numeroGuia: r.numeroGuia,
                                   shipperNombre: r.shipper?.nombre ?? null,
                                   shipperEncargado: r.shipper?.nombreEncargado ?? null,
@@ -1018,7 +1026,14 @@ export default function ConsolidadoViewPage() {
                                   pesoKgs: r.pesoKgs ?? null,
                                   contenido: r.contenido ?? null,
                                   consolidadoGuia: row?.numeroGuia ?? (id ? `#${id}` : null),
-                                }], { title: `Etiqueta · ${r.numeroGuia}` });
+                                  posicionEnConsolidado: r.posicionEnConsolidado ?? null,
+                                  totalEnConsolidado: paquetesDelConsolidado.length,
+                                }], {
+                                  title: `Etiqueta · ${r.numeroGuia}`,
+                                  pageSize: '4x6',
+                                  mode: 'thermal',
+                                  withQR: true,
+                                });
                               }}
                               title="Imprimir etiqueta"
                             >
@@ -1090,8 +1105,8 @@ export default function ConsolidadoViewPage() {
                   <DialogHeader className="px-6 py-4 border-b border-border/60 bg-muted/30 space-y-2">
                     <div className="flex items-center gap-3">
                       <div className={
-                        'h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ' +
-                        (wasComplete ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400')
+                        'h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ' +
+                        (wasComplete ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning')
                       }>
                         {wasComplete ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                       </div>
@@ -1114,7 +1129,7 @@ export default function ConsolidadoViewPage() {
                         <button
                           type="button"
                           onClick={() => copiarTexto(editPaquete.numeroGuia ?? editNumeroGuia, 'Guía')}
-                          className="h-5 w-5 rounded hover:bg-accent text-muted-foreground hover:text-foreground flex items-center justify-center"
+                          className="h-5 w-5 rounded hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
                           title="Copiar guía"
                         >
                           <Copy className="h-3 w-3" />
@@ -1131,7 +1146,7 @@ export default function ConsolidadoViewPage() {
                               className={
                                 'h-1.5 w-5 rounded-full ' +
                                 (!formErrors[k]
-                                  ? 'bg-emerald-500'
+                                  ? 'bg-success'
                                   : 'bg-muted-foreground/30')
                               }
                             />
@@ -1283,15 +1298,15 @@ export default function ConsolidadoViewPage() {
                       <Button variant="outline" onClick={tryCloseEditDialog} disabled={saving}>
                         Cancelar
                       </Button>
-                      <Button onClick={saveEditDialog} disabled={saving || !formIsDirty} className="gap-1.5 min-w-[120px]">
-                        {saving ? (
-                          'Guardando...'
-                        ) : (
-                          <>
-                            <CheckCircle2 className="h-4 w-4" />
-                            Guardar
-                          </>
-                        )}
+                      <Button
+                        onClick={saveEditDialog}
+                        disabled={!formIsDirty}
+                        loading={saving}
+                        loadingText="Guardando..."
+                        className="gap-1.5 min-w-[120px]"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Guardar
                       </Button>
                     </div>
                   </DialogFooter>

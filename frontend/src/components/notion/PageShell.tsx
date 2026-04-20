@@ -13,7 +13,7 @@ export default function PageShell({
     size === 'wide' ? 'max-w-7xl' : size === 'narrow' ? 'max-w-3xl' : 'max-w-6xl';
   return (
     <div className={cn('w-full', className)}>
-      <div className={cn('mx-auto px-6 py-10', maxWidth)}>
+      <div className={cn('mx-auto px-6 sm:px-8 py-10 sm:py-12', maxWidth)}>
         {children}
       </div>
     </div>

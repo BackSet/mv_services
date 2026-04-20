@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useSolicitudesPendientes } from '@/hooks/useSolicitudesPendientes';
+import { ListRowsSkeleton } from '@/components/skeletons';
 
 function timeAgoEs(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
@@ -30,7 +31,7 @@ function timeAgoEs(dateStr: string | null | undefined): string {
 
 export default function NotificacionesBell() {
   const navigate = useNavigate();
-  const { enabled, count, list, refetch } = useSolicitudesPendientes({
+  const { enabled, count, list, listLoading, refetch } = useSolicitudesPendientes({
     withList: true,
     notify: true,
   });
@@ -43,13 +44,13 @@ export default function NotificacionesBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground relative"
+            className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted relative transition-colors ease-claude"
             aria-label="Notificaciones"
           >
             <Bell className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72 p-0 rounded-xl overflow-hidden">
+        <DropdownMenuContent align="end" className="w-72 p-0 rounded-xl overflow-hidden shadow-popover">
           <div className="px-3 py-3 border-b border-border/60 flex items-center justify-between">
             <div className="font-medium text-sm">Notificaciones</div>
             <Badge variant="outline" className="text-[10px]">
@@ -75,14 +76,18 @@ export default function NotificacionesBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground relative"
+          className={`h-9 w-9 rounded-lg relative transition-colors ease-claude hover:bg-muted ${
+            count > 0
+              ? 'text-accent hover:text-accent'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
           aria-label={`Notificaciones (${count} pendientes)`}
           title={count > 0 ? `${count} solicitudes pendientes` : 'Notificaciones'}
         >
           <Bell className="h-4 w-4" />
           {count > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold shadow ring-2 ring-background"
+              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-accent text-accent-foreground text-[10px] font-bold shadow-soft ring-2 ring-background"
               aria-hidden="true"
             >
               {badgeText}
@@ -90,10 +95,10 @@ export default function NotificacionesBell() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[360px] p-0 rounded-xl overflow-hidden">
+      <DropdownMenuContent align="end" className="w-[360px] p-0 rounded-xl overflow-hidden shadow-popover">
         <div className="px-3 py-3 border-b border-border/60 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <Inbox className="h-4 w-4 text-primary shrink-0" />
+            <Inbox className="h-4 w-4 text-accent shrink-0" />
             <div className="min-w-0">
               <div className="font-medium text-sm leading-none">Solicitudes de shipper</div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -104,7 +109,7 @@ export default function NotificacionesBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-muted"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -117,7 +122,11 @@ export default function NotificacionesBell() {
           </Button>
         </div>
 
-        {hasItems ? (
+        {listLoading && !hasItems ? (
+          <div className="px-2 py-2">
+            <ListRowsSkeleton rows={4} />
+          </div>
+        ) : hasItems ? (
           <div className="max-h-[320px] overflow-y-auto">
             {top.map((s) => {
               const hace = timeAgoEs(s.fechaSolicitud);
@@ -126,9 +135,13 @@ export default function NotificacionesBell() {
                   key={s.id}
                   type="button"
                   onClick={() => navigate(`/solicitudes-shippers?focus=${s.id}`)}
-                  className="w-full text-left px-3 py-2.5 hover:bg-accent transition-colors flex items-start gap-3 border-b border-border/40 last:border-b-0"
+                  className="w-full text-left px-3 py-2.5 hover:bg-muted transition-colors ease-claude flex items-start gap-3 border-b border-border/40 last:border-b-0 relative"
                 >
-                  <div className="h-8 w-8 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <span
+                    className="absolute left-1 top-3 h-1.5 w-1.5 rounded-full bg-accent"
+                    aria-hidden="true"
+                  />
+                  <div className="h-8 w-8 rounded-lg bg-warning/15 text-warning flex items-center justify-center shrink-0">
                     <UserPlus className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">

@@ -17,23 +17,23 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-4 pb-3 border-b border-border/40',
-        className
+        'flex items-start justify-between gap-4 pb-5 border-b border-border/60',
+        className,
       )}
     >
       <div className="flex items-start gap-3 min-w-0">
         {icon ? (
-          <div className="h-8 w-8 rounded bg-muted/50 flex items-center justify-center text-muted-foreground shrink-0">
+          <div className="h-10 w-10 rounded-lg bg-accent-soft flex items-center justify-center text-accent shrink-0">
             {icon}
           </div>
         ) : null}
 
         <div className="min-w-0">
-          <div className="text-xl font-semibold text-foreground tracking-tight truncate">
+          <div className="font-serif text-2xl text-foreground tracking-tight truncate">
             {title}
           </div>
           {subtitle ? (
-            <div className="text-xs text-muted-foreground mt-0.5 truncate">
+            <div className="text-sm text-muted-foreground mt-1 truncate">
               {subtitle}
             </div>
           ) : null}

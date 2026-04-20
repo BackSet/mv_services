@@ -24,7 +24,7 @@ import {
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { DetailPageLayout } from '@/components/detail/DetailPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
-import { LoadingState } from '@/components/states/LoadingState';
+import { DetailPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -130,7 +130,7 @@ export default function PaqueteViewPage() {
 
   const imprimirEtiqueta = () => {
     if (!row) return;
-    printPackageLabels(
+    void printPackageLabels(
       [
         {
           numeroGuia: row.numeroGuia,
@@ -142,9 +142,15 @@ export default function PaqueteViewPage() {
           pesoKgs: row.pesoKgs,
           contenido: row.contenido,
           consolidadoGuia: row.consolidado?.numeroGuia ?? (row.consolidado?.id ? `#${row.consolidado.id}` : null),
+          posicionEnConsolidado: row.posicionEnConsolidado ?? null,
         },
       ],
-      { title: `Etiqueta · ${row.numeroGuia}` },
+      {
+        title: `Etiqueta · ${row.numeroGuia}`,
+        pageSize: '4x6',
+        mode: 'thermal',
+        withQR: true,
+      },
     );
   };
 
@@ -294,7 +300,7 @@ export default function PaqueteViewPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando paquete..." />
+          <DetailPageSkeleton kpis={4} sections={[3, 3]} />
         ) : error ? (
           <ErrorState
             title="Error al cargar paquete"
@@ -316,7 +322,7 @@ export default function PaqueteViewPage() {
                     <button
                       type="button"
                       onClick={() => copiar(row.numeroGuia, 'Guía')}
-                      className="h-6 w-6 shrink-0 rounded-md border border-border/60 bg-background hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
+                      className="h-6 w-6 shrink-0 rounded-md border border-border/60 bg-background hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors"
                       title="Copiar guía al portapapeles"
                       aria-label="Copiar guía"
                     >
@@ -349,12 +355,12 @@ export default function PaqueteViewPage() {
                     <button
                       type="button"
                       onClick={() => navigate(`/shippers/${row.shipper!.id}`)}
-                      className="text-sm font-medium hover:text-primary transition-colors text-left line-clamp-1"
+                      className="text-sm font-medium hover:text-accent transition-colors text-left line-clamp-1"
                     >
                       {row.shipper.nombre}
                     </button>
                   ) : (
-                    <span className="text-sm text-amber-600 dark:text-amber-400">Sin asignar</span>
+                    <span className="text-sm text-warning">Sin asignar</span>
                   )
                 }
                 accent={row.shipper ? 'success' : 'warning'}
@@ -368,7 +374,7 @@ export default function PaqueteViewPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/consolidados/${row.consolidado!.id}`)}
-                        className="text-sm font-mono hover:text-primary transition-colors text-left line-clamp-1 min-w-0"
+                        className="text-sm font-mono hover:text-accent transition-colors text-left line-clamp-1 min-w-0"
                         title="Ver consolidado"
                       >
                         {row.consolidado.numeroGuia ?? `#${row.consolidado.id}`}
@@ -376,7 +382,7 @@ export default function PaqueteViewPage() {
                       <button
                         type="button"
                         onClick={() => copiar(row.consolidado!.numeroGuia ?? `#${row.consolidado!.id}`, 'Consolidado')}
-                        className="h-6 w-6 shrink-0 rounded-md border border-border/60 bg-background hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
+                        className="h-6 w-6 shrink-0 rounded-md border border-border/60 bg-background hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors"
                         title="Copiar número de consolidado al portapapeles"
                         aria-label="Copiar consolidado"
                       >
@@ -491,7 +497,7 @@ export default function PaqueteViewPage() {
               {row.shipper ? (
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-lg bg-success/15 text-success flex items-center justify-center">
                       <Truck className="h-5 w-5" />
                     </div>
                     <div>
@@ -526,7 +532,7 @@ export default function PaqueteViewPage() {
               {row.consolidado ? (
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-lg bg-accent-soft text-accent-soft-foreground flex items-center justify-center">
                       <Layers className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
@@ -537,7 +543,7 @@ export default function PaqueteViewPage() {
                         <button
                           type="button"
                           onClick={() => copiar(row.consolidado!.numeroGuia ?? `#${row.consolidado!.id}`, 'Consolidado')}
-                          className="h-6 w-6 rounded-md border border-border/60 bg-background hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
+                          className="h-6 w-6 rounded-md border border-border/60 bg-background hover:bg-muted hover:text-foreground flex items-center justify-center transition-colors"
                           title="Copiar número de consolidado al portapapeles"
                           aria-label="Copiar consolidado"
                         >
@@ -551,7 +557,7 @@ export default function PaqueteViewPage() {
                         <div className="flex items-center gap-1.5 text-xs">
                           <span
                             title="Posición del paquete dentro del consolidado (calculada automáticamente)"
-                            className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 font-semibold tabular-nums text-[11px]"
+                            className="inline-flex items-center justify-center min-w-[28px] h-5 px-1.5 rounded-full bg-accent-soft text-accent-soft-foreground font-semibold tabular-nums text-[11px]"
                           >
                             #{row.posicionEnConsolidado}
                           </span>
@@ -634,13 +640,13 @@ function QuickStat({
   accent?: StatAccent;
 }) {
   const accentMap: Record<StatAccent, string> = {
-    primary: 'bg-primary/10 text-primary',
-    success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    primary: 'bg-accent-soft text-accent-soft-foreground',
+    success: 'bg-success/15 text-success',
+    warning: 'bg-warning/15 text-warning',
     muted: 'bg-muted text-muted-foreground',
   };
   return (
-    <div className="rounded-xl border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:shadow-sm">
+    <div className="rounded-xl border border-border bg-card px-4 py-3 transition-all ease-claude hover:border-accent/30 hover:shadow-soft">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -695,7 +701,7 @@ function Timeline({
                 className={cn(
                   'h-7 w-7 rounded-full flex items-center justify-center shrink-0 border',
                   isDone
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-success/15 border-success/30 text-success'
                     : 'bg-muted/40 border-border text-muted-foreground',
                 )}
               >
@@ -705,7 +711,7 @@ function Timeline({
                 <div
                   className={cn(
                     'w-px flex-1 mt-1',
-                    isDone ? 'bg-emerald-500/30' : 'bg-border',
+                    isDone ? 'bg-success/30' : 'bg-border',
                   )}
                 />
               )}

@@ -17,7 +17,8 @@ import {
   Zap,
 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Brand } from "@/components/brand"
+import { Brand, BrandMark } from "@/components/brand"
+import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
@@ -26,55 +27,46 @@ const KEY_POINTS = [
     icon: Truck,
     title: "Servicio logístico completo",
     desc: "Nos encargamos de todo el camino de tu paquete: lo recibimos, lo procesamos con cuidado y lo entregamos en su destino final.",
-    color: "text-amber-500 bg-amber-500/10",
   },
   {
     icon: MapPin,
     title: "Tracking de tu paquete",
     desc: "Sabes en todo momento dónde está tu paquete y en qué etapa del proceso se encuentra, desde que lo recibimos hasta que llega a su destino.",
-    color: "text-rose-500 bg-rose-500/10",
   },
   {
     icon: Package,
     title: "Tu paquete, en buenas manos",
     desc: "Cada paquete se identifica, se manipula con cuidado y se controla en cada etapa para asegurar que llegue completo y en perfecto estado.",
-    color: "text-blue-500 bg-blue-500/10",
   },
   {
     icon: MessageCircle,
     title: "Te avisamos en cada etapa",
     desc: "Recibes notificaciones cuando tu paquete es despachado y cuando va camino al destino, sin tener que preguntar.",
-    color: "text-green-500 bg-green-500/10",
   },
   {
     icon: Route,
     title: "Cobertura amplia",
     desc: "Llegamos a múltiples destinos a través de nuestra red de agencias y distribuidores, sin que tú tengas que coordinar nada.",
-    color: "text-sky-500 bg-sky-500/10",
   },
   {
     icon: Headphones,
     title: "Atención cuando la necesitas",
     desc: "Si surge una novedad con tu paquete, registramos el caso y le damos seguimiento hasta resolverlo.",
-    color: "text-fuchsia-500 bg-fuchsia-500/10",
   },
   {
     icon: Users,
     title: "Para envíos puntuales o volumen",
     desc: "Funciona igual de bien si envías un paquete o si manejas envíos masivos como shipper, con la misma confiabilidad.",
-    color: "text-cyan-500 bg-cyan-500/10",
   },
   {
     icon: ShieldCheck,
     title: "Confiabilidad y respaldo",
     desc: "Cada paquete queda registrado y respaldado en la plataforma, con un historial completo de su recorrido y entrega.",
-    color: "text-teal-500 bg-teal-500/10",
   },
   {
     icon: Clock,
     title: "Visibilidad en tiempo real",
     desc: "Consulta el estado de tus envíos desde cualquier dispositivo, sin esperar a que alguien te responda por teléfono.",
-    color: "text-violet-500 bg-violet-500/10",
   },
 ]
 
@@ -149,7 +141,6 @@ export default function LandingPage() {
   const [activeSection, setActiveSection] = useState<string>("inicio")
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
-  // Scroll spy simple
   useEffect(() => {
     const ids = ["inicio", "info", "flujo", "faq"]
     const observer = new IntersectionObserver(
@@ -168,23 +159,23 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Skip to content */}
+    <div className="min-h-screen bg-background text-foreground font-sans">
       <a
         href="#inicio"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-foreground focus:shadow-popover"
       >
         Saltar al contenido
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
           <a
             href="#inicio"
             onClick={scrollTo}
-            className="group inline-flex items-center transition-opacity hover:opacity-80"
+            className="group inline-flex items-center gap-2.5 transition-opacity hover:opacity-80"
             aria-label="MV Services - Inicio"
           >
+            <BrandMark size={32} />
             <Brand size="lg" />
           </a>
 
@@ -199,54 +190,66 @@ export default function LandingPage() {
                 href={`#${item.id}`}
                 onClick={scrollTo}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm transition-colors",
+                  "relative rounded-md px-3 py-1.5 text-sm transition-colors",
                   activeSection === item.id
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {item.label}
+                {activeSection === item.id && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-accent" />
+                )}
               </a>
             ))}
           </nav>
 
           <div className="flex items-center gap-2">
-            <ThemeToggle className="h-9 w-9 rounded-md" />
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow"
-            >
-              Ingresar
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <ThemeToggle className="h-9 w-9 rounded-lg" />
+            <Button asChild size="sm" className="gap-1.5">
+              <Link to="/login">
+                Ingresar
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
           </div>
         </div>
       </header>
 
       <main>
         {/* HERO */}
-        <section id="inicio" className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/40">
+        <section
+          id="inicio"
+          className="relative overflow-hidden border-b border-border/50"
+        >
           {/* Decoración de fondo */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="absolute -top-32 -right-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
-            <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-mvs-secondary/10 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            <div className="absolute -top-40 -right-32 h-[480px] w-[480px] rounded-full bg-accent/15 blur-[120px]" />
+            <div className="absolute top-32 -left-32 h-[420px] w-[420px] rounded-full bg-accent/10 blur-[120px]" />
+            <div
+              className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+                backgroundSize: "28px 28px",
+              }}
+            />
           </div>
 
-          <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-6 py-16 lg:grid-cols-2 lg:items-center lg:py-24">
-            <div className="space-y-6">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground shadow-sm">
+          <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-28">
+            <div className="space-y-7">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground shadow-soft">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent"></span>
                 </span>
                 Plataforma operativa
               </span>
 
-              <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                Tu paquete llega bien,{" "}
-                <span className="bg-gradient-to-r from-foreground to-mvs-secondary bg-clip-text text-transparent">
-                  y tú sabes en todo momento dónde está.
-                </span>
+              <h1 className="font-serif text-4xl leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+                Tu paquete llega bien,
+                <br />
+                <span className="text-accent">y tú sabes</span> dónde está.
               </h1>
               <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Servicio logístico completo de paquetería: lo recibimos, lo cuidamos durante todo el
@@ -254,65 +257,68 @@ export default function LandingPage() {
                 etapa para que viajes tranquilo.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
-                >
-                  Ingresar al sistema
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/registro-shipper"
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  Solicitar cuenta shipper
-                </Link>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Button asChild size="lg" className="gap-2">
+                  <Link to="/registro-shipper">
+                    Solicitar cuenta shipper
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="ghost" size="lg" className="gap-2">
+                  <Link to="/login">
+                    Iniciar sesión
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
 
-              <div className="grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3 pt-2">
                 <StatChip icon={<Truck className="h-3.5 w-3.5" />} label="Servicio" value="Logística completa" />
                 <StatChip icon={<MapPin className="h-3.5 w-3.5" />} label="Visibilidad" value="Tracking en tiempo real" />
-                <StatChip icon={<Zap className="h-3.5 w-3.5" />} label="Tranquilidad" value="Avisos en cada etapa" />
+                <StatChip icon={<Zap className="h-3.5 w-3.5" />} label="Tranquilidad" value="Avisos por etapa" />
               </div>
             </div>
 
             {/* Mock visual del dashboard */}
-            <div className="relative">
-              <div className="absolute inset-0 -translate-x-3 translate-y-3 rounded-2xl bg-gradient-to-br from-primary/20 to-mvs-secondary/20 blur-2xl" aria-hidden />
-              <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-foreground/10">
-                {/* Barra superior fake */}
-                <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                  <div className="ml-2 flex h-5 flex-1 items-center justify-center rounded bg-background px-2 text-[10px] text-muted-foreground">
+            <div className="relative hidden lg:block">
+              <div
+                aria-hidden
+                className="absolute inset-0 -translate-x-3 translate-y-3 rounded-2xl bg-accent/15 blur-2xl"
+              />
+              <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card shadow-popover">
+                <div className="flex items-center gap-2 border-b border-border/60 bg-[#0C0C0C] px-4 py-3">
+                  <span className="h-2.5 w-2.5 rounded-full bg-destructive/80" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-warning/80" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-success/80" />
+                  <div className="ml-2 flex h-5 flex-1 items-center justify-center rounded bg-white/5 px-2 text-[10px] text-white/50 font-mono">
                     mvservices.app/tracking
                   </div>
                 </div>
-                {/* Contenido fake */}
-                <div className="space-y-3 p-5">
+                <div className="space-y-4 p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-muted-foreground">Mis envíos</div>
-                      <div className="text-base font-semibold">Estado actual</div>
+                      <div className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+                        Mis envíos
+                      </div>
+                      <div className="font-serif text-xl mt-0.5">Estado actual</div>
                     </div>
-                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-0.5 text-[10px] font-medium text-accent-soft-foreground">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                       En vivo
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <MiniKpi label="Recibidos" value="124" tone="bg-blue-500/10 text-blue-500" />
-                    <MiniKpi label="En tránsito" value="89" tone="bg-violet-500/10 text-violet-500" />
-                    <MiniKpi label="Entregados" value="35" tone="bg-emerald-500/10 text-emerald-500" />
+                    <MiniKpi label="Recibidos" value="124" />
+                    <MiniKpi label="En tránsito" value="89" tone="accent" />
+                    <MiniKpi label="Entregados" value="35" tone="success" />
                   </div>
 
-                  <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
-                    <FakeRow guia="MV-2024-0001" estado="Entregado" />
-                    <FakeRow guia="MV-2024-0002" estado="En tránsito" warn />
-                    <FakeRow guia="MV-2024-0003" estado="Entregado" />
-                    <FakeRow guia="MV-2024-0004" estado="Recibido" warn />
+                  <div className="space-y-1.5 rounded-lg border border-border/60 bg-muted/30 p-3">
+                    <FakeRow guia="MV-2026-0001" estado="Entregado" />
+                    <FakeRow guia="MV-2026-0002" estado="En tránsito" warn />
+                    <FakeRow guia="MV-2026-0003" estado="Entregado" />
+                    <FakeRow guia="MV-2026-0004" estado="Recibido" warn />
                   </div>
                 </div>
               </div>
@@ -321,16 +327,16 @@ export default function LandingPage() {
         </section>
 
         {/* INFO / KEY POINTS */}
-        <section id="info" className="bg-background py-16 lg:py-24">
+        <section id="info" className="bg-background py-20 lg:py-28">
           <div className="mx-auto w-full max-w-6xl px-6">
-            <div className="mb-12 max-w-2xl">
-              <span className="text-xs font-medium uppercase tracking-wider text-mvs-secondary">
+            <div className="mb-14 max-w-2xl">
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-accent">
                 Lo que ofrecemos
               </span>
-              <h2 className="mt-2 font-serif text-3xl tracking-tight lg:text-4xl">
-                Pensado para que tu paquete llegue bien
+              <h2 className="mt-3 font-serif text-3xl tracking-tight lg:text-5xl leading-[1.1]">
+                Pensado para que tu paquete <span className="text-accent">llegue bien</span>
               </h2>
-              <p className="mt-3 text-sm text-muted-foreground lg:text-base">
+              <p className="mt-4 text-base text-muted-foreground leading-relaxed">
                 Cuidamos cada paso del recorrido para que tú no tengas que preocuparte por el camino.
               </p>
             </div>
@@ -340,12 +346,12 @@ export default function LandingPage() {
                 return (
                   <div
                     key={item.title}
-                    className="group rounded-2xl border border-border bg-card p-6 transition-all hover:border-foreground/20 hover:shadow-md"
+                    className="group rounded-2xl border border-border/70 bg-card p-6 shadow-soft transition-all duration-200 ease-claude hover:shadow-card hover:-translate-y-0.5 hover:border-foreground/15"
                   >
-                    <div className={cn("mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg transition-transform group-hover:scale-110", item.color)}>
+                    <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent transition-transform group-hover:scale-105">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-base font-semibold">{item.title}</h3>
+                    <h3 className="font-serif text-lg leading-tight">{item.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
                   </div>
                 )
@@ -355,16 +361,16 @@ export default function LandingPage() {
         </section>
 
         {/* FLUJO */}
-        <section id="flujo" className="bg-muted/30 py-16 lg:py-24">
+        <section id="flujo" className="bg-muted/30 py-20 lg:py-28 border-y border-border/50">
           <div className="mx-auto w-full max-w-6xl px-6">
-            <div className="mb-10 max-w-2xl">
-              <span className="text-xs font-medium uppercase tracking-wider text-mvs-secondary">
+            <div className="mb-12 max-w-2xl">
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-accent">
                 Cómo funciona
               </span>
-              <h2 className="mt-2 font-serif text-3xl tracking-tight lg:text-4xl">
+              <h2 className="mt-3 font-serif text-3xl tracking-tight lg:text-5xl leading-[1.1]">
                 Tres pasos hasta su destino
               </h2>
-              <p className="mt-3 text-sm text-muted-foreground lg:text-base">
+              <p className="mt-4 text-base text-muted-foreground leading-relaxed">
                 Te explicamos en simple cómo viaja tu paquete con nosotros.
               </p>
             </div>
@@ -374,15 +380,15 @@ export default function LandingPage() {
                 return (
                   <div
                     key={item.title}
-                    className="relative rounded-2xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
+                    className="relative rounded-2xl border border-border/70 bg-card p-7 shadow-soft transition-all duration-200 ease-claude hover:shadow-card"
                   >
-                    <span className="absolute right-5 top-5 font-serif text-2xl font-bold text-muted-foreground/30">
+                    <span className="absolute right-6 top-6 font-serif text-3xl text-accent/20">
                       {item.step}
                     </span>
-                    <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="text-base font-semibold">{item.title}</h3>
+                    <h3 className="font-serif text-lg leading-tight">{item.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
                   </div>
                 )
@@ -392,16 +398,16 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="bg-background py-16 lg:py-24">
+        <section id="faq" className="bg-background py-20 lg:py-28">
           <div className="mx-auto w-full max-w-3xl px-6">
-            <div className="mb-10 text-center">
-              <span className="text-xs font-medium uppercase tracking-wider text-mvs-secondary">
+            <div className="mb-12 text-center">
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-accent">
                 Preguntas frecuentes
               </span>
-              <h2 className="mt-2 font-serif text-3xl tracking-tight lg:text-4xl">
+              <h2 className="mt-3 font-serif text-3xl tracking-tight lg:text-5xl leading-[1.1]">
                 ¿Tienes dudas sobre tu envío?
               </h2>
-              <p className="mt-3 text-sm text-muted-foreground lg:text-base">
+              <p className="mt-4 text-base text-muted-foreground leading-relaxed">
                 Las respuestas que más nos hacen nuestros clientes.
               </p>
             </div>
@@ -413,26 +419,28 @@ export default function LandingPage() {
                   <div
                     key={item.q}
                     className={cn(
-                      "rounded-xl border bg-card transition-colors",
-                      open ? "border-foreground/20 shadow-sm" : "border-border",
+                      "rounded-xl border bg-card transition-all duration-200 ease-claude",
+                      open ? "border-accent/30 shadow-card" : "border-border/70 shadow-soft hover:border-foreground/15",
                     )}
                   >
                     <button
                       type="button"
                       onClick={() => setOpenFaq(open ? null : idx)}
-                      className="flex w-full items-center justify-between gap-4 p-4 text-left"
+                      className="flex w-full items-center justify-between gap-4 p-5 text-left"
                       aria-expanded={open}
                     >
-                      <span className="text-sm font-medium">{item.q}</span>
+                      <span className={cn("text-sm font-medium", open && "text-accent")}>
+                        {item.q}
+                      </span>
                       <ChevronDown
                         className={cn(
                           "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                          open && "rotate-180",
+                          open && "rotate-180 text-accent",
                         )}
                       />
                     </button>
                     {open && (
-                      <div className="px-4 pb-4 text-sm leading-relaxed text-muted-foreground">
+                      <div className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200">
                         {item.a}
                       </div>
                     )}
@@ -444,37 +452,49 @@ export default function LandingPage() {
         </section>
 
         {/* CTA final */}
-        <section className="bg-muted/30 py-16">
+        <section className="bg-muted/30 py-20 border-t border-border/50">
           <div className="mx-auto w-full max-w-4xl px-6">
-            <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-muted p-8 shadow-lg sm:p-12">
-              <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
-              <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
+            <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-[#0C0C0C] p-10 shadow-card sm:p-14">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full bg-accent/30 blur-[100px]"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -left-20 -bottom-20 h-60 w-60 rounded-full bg-accent/15 blur-[100px]"
+              />
+              <div className="relative flex flex-col items-start gap-8 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-white">
+                  <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80">
+                    <Sparkles className="h-3 w-3 text-accent" />
                     Empieza hoy
                   </div>
-                  <h3 className="font-serif text-2xl tracking-tight sm:text-3xl">
-                    Envía con la tranquilidad de saber dónde está
+                  <h3 className="font-serif text-3xl tracking-tight sm:text-4xl leading-tight">
+                    Envía con la tranquilidad
+                    <br />
+                    <span className="text-accent">de saber dónde está.</span>
                   </h3>
-                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                    Ingresa con tu cuenta o solicita una cuenta shipper en pocos minutos para gestionar tus envíos.
+                  <p className="mt-3 max-w-md text-sm text-white/70 leading-relaxed">
+                    Ingresa con tu cuenta o solicita una cuenta shipper en pocos minutos para
+                    gestionar tus envíos.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Link
-                    to="/login"
-                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+                <div className="flex flex-col gap-2 sm:flex-row shrink-0">
+                  <Button asChild variant="accent" size="lg" className="gap-2">
+                    <Link to="/login">
+                      Ingresar
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="gap-2 bg-white/10 hover:bg-white/15 text-white shadow-none"
                   >
-                    Ingresar
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                  <Link
-                    to="/registro-shipper"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-6 py-3 text-sm text-foreground transition-colors hover:bg-accent"
-                  >
-                    Solicitar cuenta
-                  </Link>
+                    <Link to="/registro-shipper">
+                      Solicitar cuenta
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -482,46 +502,43 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer id="contacto" className="border-t border-border bg-card text-foreground">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-10 md:flex-row md:items-center md:justify-between">
-          <div>
-            <Brand size="sm" />
-            <p className="mt-2 text-xs text-muted-foreground">
+      <footer id="contacto" className="border-t border-border/60 bg-card text-foreground">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-md">
+            <div className="flex items-center gap-2.5">
+              <BrandMark size={32} />
+              <Brand size="md" />
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
               Servicio logístico de paquetería: lo recibimos, lo cuidamos durante el trayecto y lo
               entregamos en su destino, con tracking y avisos en cada etapa.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <ShieldCheck className="h-3.5 w-3.5" />
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-accent" />
                 Envío confiable
               </span>
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-accent" />
                 Tracking en tiempo real
               </span>
-              <span className="inline-flex items-center gap-1">
-                <MessageCircle className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5 text-accent" />
                 Avisos por WhatsApp
               </span>
             </div>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Ingresar
-            </Link>
-            <Link
-              to="/registro-shipper"
-              className="inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Registro shipper
-            </Link>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button asChild>
+              <Link to="/login">Ingresar</Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/registro-shipper">Registro shipper</Link>
+            </Button>
           </div>
         </div>
         <div className="border-t border-border/60 py-3 text-center text-[11px] text-muted-foreground">
-          © {new Date().getFullYear()} MV Services. Todos los derechos reservados.
+          © {new Date().getFullYear()} <span className="font-serif">MV Services</span>. Todos los derechos reservados.
         </div>
       </footer>
     </div>
@@ -530,35 +547,48 @@ export default function LandingPage() {
 
 function StatChip({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-sm">
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
+    <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card px-4 py-3 text-sm shadow-soft">
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="truncate text-xs font-semibold">{value}</p>
+        <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground font-medium">{label}</p>
+        <p className="truncate text-xs font-semibold text-foreground">{value}</p>
       </div>
     </div>
   )
 }
 
-function MiniKpi({ label, value, tone }: { label: string; value: string; tone: string }) {
+function MiniKpi({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string
+  value: string
+  tone?: "default" | "accent" | "success"
+}) {
+  const tones: Record<string, string> = {
+    default: "bg-muted/60 text-foreground",
+    accent: "bg-accent-soft text-accent-soft-foreground",
+    success: "bg-success/15 text-success",
+  }
   return (
-    <div className={cn("rounded-md p-2", tone)}>
-      <div className="text-[9px] uppercase tracking-wider opacity-70">{label}</div>
-      <div className="text-base font-bold leading-tight">{value}</div>
+    <div className={cn("rounded-lg p-2.5", tones[tone])}>
+      <div className="text-[9px] uppercase tracking-[0.12em] opacity-70 font-medium">{label}</div>
+      <div className="font-serif text-xl leading-tight mt-0.5">{value}</div>
     </div>
   )
 }
 
 function FakeRow({ guia, estado, warn = false }: { guia: string; estado: string; warn?: boolean }) {
   return (
-    <div className="flex items-center justify-between rounded bg-card px-2 py-1.5 text-[10px]">
+    <div className="flex items-center justify-between rounded-md bg-card px-2.5 py-2 text-[11px] border border-border/40">
       <span className="font-mono text-foreground/80">{guia}</span>
       <span
         className={cn(
-          "rounded px-1.5 py-0.5 font-medium",
-          warn ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+          "rounded-full px-2 py-0.5 font-medium",
+          warn ? "bg-warning/15 text-warning" : "bg-success/15 text-success",
         )}
       >
         {estado}

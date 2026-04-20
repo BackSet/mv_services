@@ -1,4 +1,16 @@
 import JsBarcode from 'jsbarcode';
+import QRCode from 'qrcode';
+import {
+  BRAND_HEX,
+  BRAND_FONT_PRINT,
+  PRINT_BRAND_TEXT,
+  escapePrintHtml,
+  nowPrintStamp,
+} from '@/lib/print/brandTokens';
+
+// =============================================================================
+// Tipos públicos
+// =============================================================================
 
 export type PackageLabel = {
   numeroGuia: string;
@@ -11,23 +23,51 @@ export type PackageLabel = {
   contenido?: string | null;
   fecha?: string | null;
   consolidadoGuia?: string | null;
+  /** Posición 1-based del paquete dentro de su consolidado (si aplica). */
+  posicionEnConsolidado?: number | null;
+  /** Total de paquetes en el consolidado (para mostrar 12/45). */
+  totalEnConsolidado?: number | null;
 };
 
-type PrintOptions = {
-  pageSize?: '4x6';
+/** Tamaños de etiqueta soportados (nominal). */
+export type LabelSize = '4x6' | '4x4' | '3x5' | '2x4';
+
+/**
+ * Modo de impresión:
+ * - `thermal` (DEFAULT): optimizado para impresoras térmicas Zebra (ZD420/ZD620/GK420/etc.).
+ *   Solo blanco/negro sólido, bordes gruesos, sin grises sutiles, sin radios redondeados,
+ *   sin colores corporativos en tinta (el naranja no se imprime en térmicas).
+ * - `color`: para impresoras láser/inkjet de oficina. Usa el acento naranja MV y radios suaves.
+ */
+export type PrintMode = 'thermal' | 'color';
+
+export type PrintOptions = {
+  pageSize?: LabelSize;
+  /** Orientación: portrait (default) o landscape. */
+  orientation?: 'portrait' | 'landscape';
+  mode?: PrintMode;
   title?: string;
-  /** Cierra la ventana automáticamente después de imprimir */
+  /** Si true, agrega un QR del número de guía junto al barcode. */
+  withQR?: boolean;
+  /** Cierra la ventana automáticamente después de imprimir. */
   autoClose?: boolean;
+  /** Si false, no dispara `window.print()` automáticamente al cargar (útil para preview). */
+  autoPrint?: boolean;
 };
 
-function escapeHtml(v: string) {
-  return String(v ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
+// =============================================================================
+// Helpers internos
+// =============================================================================
+
+const escapeHtml = escapePrintHtml;
+const nowStamp = nowPrintStamp;
+
+const PAGE_DIMENSIONS_IN: Record<LabelSize, { w: number; h: number }> = {
+  '4x6': { w: 4, h: 6 },
+  '4x4': { w: 4, h: 4 },
+  '3x5': { w: 3, h: 5 },
+  '2x4': { w: 2, h: 4 },
+};
 
 function barcodeSvg(value: string, opts?: { height?: number; width?: number }): string {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -35,12 +75,22 @@ function barcodeSvg(value: string, opts?: { height?: number; width?: number }): 
     format: 'CODE128',
     displayValue: false,
     margin: 0,
-    height: opts?.height ?? 110,
+    height: opts?.height ?? 130,
     width: opts?.width ?? 3,
     background: 'transparent',
     lineColor: '#000000',
   });
   return svg.outerHTML;
+}
+
+async function qrSvg(value: string, sizePx: number): Promise<string> {
+  return QRCode.toString(value, {
+    type: 'svg',
+    errorCorrectionLevel: 'M',
+    margin: 0,
+    color: { dark: '#000000', light: '#FFFFFF' },
+    width: sizePx,
+  });
 }
 
 function formatNumber(n: number | null | undefined, decimals = 2): string {
@@ -51,31 +101,36 @@ function formatNumber(n: number | null | undefined, decimals = 2): string {
   });
 }
 
-function nowStamp(): string {
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
-}
-
-/**
- * Calcula la clase de tamaño de fuente para el destinatario según longitud,
- * para que nombres largos no rompan el layout.
- */
+/** Calcula el tamaño de fuente (clase) para el destinatario según longitud. */
 function destSizeClass(name: string): string {
   const len = (name || '').length;
-  if (len <= 14) return 'dest-xl';
-  if (len <= 22) return 'dest-lg';
-  if (len <= 32) return 'dest-md';
+  if (len <= 12) return 'dest-xl';
+  if (len <= 20) return 'dest-lg';
+  if (len <= 30) return 'dest-md';
   return 'dest-sm';
 }
 
-function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
+/** Últimos 4 caracteres alfanuméricos de la guía (para verificación visual rápida). */
+function tailDigits(numeroGuia: string): string {
+  const cleaned = (numeroGuia || '').replace(/[^A-Za-z0-9]/g, '');
+  return cleaned.slice(-4).toUpperCase();
+}
+
+// =============================================================================
+// Generación HTML
+// =============================================================================
+
+async function buildHtml(
+  labels: PackageLabel[],
+  opts: Required<PrintOptions>,
+): Promise<string> {
   const total = labels.length;
   const stamp = nowStamp();
+  const isThermal = opts.mode === 'thermal';
+
+  const dims = PAGE_DIMENSIONS_IN[opts.pageSize];
+  const pageWIn = opts.orientation === 'landscape' ? dims.h : dims.w;
+  const pageHIn = opts.orientation === 'landscape' ? dims.w : dims.h;
 
   const safe = labels.map((l) => ({
     ...l,
@@ -86,29 +141,74 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
     ref: (l.ref || '').trim() || null,
     contenido: (l.contenido || '').trim() || null,
     consolidadoGuia: (l.consolidadoGuia || '').trim() || null,
+    posicionEnConsolidado: l.posicionEnConsolidado ?? null,
+    totalEnConsolidado: l.totalEnConsolidado ?? null,
   }));
+
+  // Pre-genera QR codes en paralelo si se piden (asíncrono).
+  const qrCodes = opts.withQR
+    ? await Promise.all(safe.map((l) => qrSvg(l.numeroGuia, 110)))
+    : safe.map(() => '');
 
   const pageHtml = safe
     .map((l, idx) => {
       const svg = barcodeSvg(l.numeroGuia);
+      const qr = qrCodes[idx];
       const shipperEnc = l.shipperEncargado;
       const shipperNom = l.shipperNombre || '—';
       const destClass = destSizeClass(l.destinatarioNombre);
+      const tail = tailDigits(l.numeroGuia);
 
       const pesoChips: string[] = [];
       if (l.pesoLbs != null && l.pesoLbs > 0) {
-        pesoChips.push(`<span class="chip chip-strong"><span class="chip-num">${formatNumber(l.pesoLbs)}</span><span class="chip-u">LB</span></span>`);
+        pesoChips.push(
+          `<span class="chip chip-strong"><span class="chip-num">${formatNumber(l.pesoLbs)}</span><span class="chip-u">LB</span></span>`,
+        );
       }
       if (l.pesoKgs != null && l.pesoKgs > 0) {
-        pesoChips.push(`<span class="chip"><span class="chip-num">${formatNumber(l.pesoKgs)}</span><span class="chip-u">KG</span></span>`);
+        pesoChips.push(
+          `<span class="chip"><span class="chip-num">${formatNumber(l.pesoKgs)}</span><span class="chip-u">KG</span></span>`,
+        );
       }
 
-      const counter = total > 1
-        ? `<span class="counter">${idx + 1}<span class="counter-sep">/</span>${total}</span>`
-        : '';
+      const counter =
+        total > 1
+          ? `<span class="counter">${idx + 1}<span class="counter-sep">/</span>${total}</span>`
+          : '';
 
-      const consolidadoBadge = l.consolidadoGuia
-        ? `<div class="consol-badge"><span class="consol-label">CONSOL</span><span class="consol-val">${escapeHtml(l.consolidadoGuia)}</span></div>`
+      // Bloque de "ruta" (consolidado + posición) — destacado solo si hay datos.
+      const hasRoute = l.consolidadoGuia || l.posicionEnConsolidado != null;
+      let routeBlock = '';
+      if (hasRoute) {
+        const posTxt =
+          l.posicionEnConsolidado != null
+            ? l.totalEnConsolidado != null
+              ? `${l.posicionEnConsolidado}/${l.totalEnConsolidado}`
+              : `#${l.posicionEnConsolidado}`
+            : '';
+        routeBlock = `
+          <section class="route-block">
+            ${
+              l.consolidadoGuia
+                ? `<div class="route-cell route-consol">
+                    <div class="route-label">CONSOLIDADO</div>
+                    <div class="route-value">${escapeHtml(l.consolidadoGuia)}</div>
+                  </div>`
+                : ''
+            }
+            ${
+              posTxt
+                ? `<div class="route-cell route-pos">
+                    <div class="route-label">POS</div>
+                    <div class="route-value route-value-big">${escapeHtml(posTxt)}</div>
+                  </div>`
+                : ''
+            }
+          </section>`;
+      }
+
+      const qrBlock = opts.withQR
+        ? `<div class="qr-frame" aria-label="Código QR">${qr}</div>`
         : '';
 
       return `
@@ -120,10 +220,10 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
             <span class="corner bl"></span>
             <span class="corner br"></span>
 
-            <!-- Banda superior negra -->
+            <!-- Banda superior -->
             <header class="brand-bar">
               <div class="brand-text">
-                <span class="brand-mv">MV</span><span class="brand-sv">SERVICES</span>
+                <span class="brand-mv">${escapeHtml(PRINT_BRAND_TEXT.wordmarkLeft)}</span><span class="brand-sv">${escapeHtml(PRINT_BRAND_TEXT.wordmarkRight)}</span>
               </div>
               <div class="brand-meta">
                 ${counter}
@@ -131,48 +231,55 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
               </div>
             </header>
 
+            ${routeBlock}
+
             <!-- Destinatario -->
-            <section class="block dest-block">
+            <section class="dest-block">
               <div class="block-tag">DESTINATARIO</div>
               <div class="dest-name ${destClass}">${escapeHtml(l.destinatarioNombre)}</div>
               ${l.ref ? `<div class="dest-ref"><span class="ref-tag">REF</span><span class="ref-val">${escapeHtml(l.ref)}</span></div>` : ''}
             </section>
 
-            <!-- Datos secundarios: shipper / peso -->
+            <!-- Shipper / peso -->
             <section class="grid-info">
               <div class="info-cell">
                 <div class="info-tag">SHIPPER</div>
                 <div class="info-value">${escapeHtml(shipperNom)}</div>
                 ${shipperEnc ? `<div class="info-sub">${escapeHtml(shipperEnc)}</div>` : ''}
               </div>
-              ${pesoChips.length > 0 ? `
-                <div class="info-cell info-cell-right">
-                  <div class="info-tag">PESO</div>
-                  <div class="chips">${pesoChips.join('')}</div>
-                </div>
-              ` : ''}
+              ${
+                pesoChips.length > 0
+                  ? `<div class="info-cell info-cell-right">
+                      <div class="info-tag">PESO</div>
+                      <div class="chips">${pesoChips.join('')}</div>
+                    </div>`
+                  : ''
+              }
             </section>
 
-            ${l.contenido ? `
-              <section class="content-block">
-                <div class="block-tag">CONTENIDO</div>
-                <div class="content-text">${escapeHtml(l.contenido)}</div>
-              </section>
-            ` : ''}
+            ${
+              l.contenido
+                ? `<section class="content-block">
+                    <div class="block-tag">CONTENIDO</div>
+                    <div class="content-text">${escapeHtml(l.contenido)}</div>
+                  </section>`
+                : ''
+            }
 
-            <!-- Código de barras -->
-            <section class="barcode-block">
-              ${consolidadoBadge}
+            <!-- Códigos -->
+            <section class="codes-block ${opts.withQR ? 'with-qr' : ''}">
               <div class="barcode-frame">
                 <div class="barcode-svg">${svg}</div>
+                <div class="guide-number">${escapeHtml(l.numeroGuia)}</div>
               </div>
-              <div class="guide-number">${escapeHtml(l.numeroGuia)}</div>
+              ${qrBlock}
             </section>
 
-            <!-- Pie -->
+            <!-- Pie con verificación visual rápida (últimos 4 chars) -->
             <footer class="foot-bar">
               <span class="foot-left">GUÍA · ${escapeHtml(l.numeroGuia)}</span>
-              <span class="foot-right">mvservices.app</span>
+              ${tail ? `<span class="foot-tail" aria-label="Verificación rápida">${escapeHtml(tail)}</span>` : ''}
+              <span class="foot-right">${escapeHtml(PRINT_BRAND_TEXT.url)}</span>
             </footer>
           </div>
         </div>
@@ -180,32 +287,79 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
     })
     .join('');
 
+  // ---------------------------------------------------------------------------
+  // CSS — distinto comportamiento entre modo `thermal` y `color`
+  // ---------------------------------------------------------------------------
+  const radii = isThermal
+    ? { md: '0', sm: '0', pill: '0' }
+    : { md: '4px', sm: '3px', pill: '999px' };
+
+  const accentColor = isThermal ? '#000000' : BRAND_HEX.orange;
+  const accentBg = isThermal ? '#000000' : BRAND_HEX.orange;
+  const accentText = isThermal ? '#FFFFFF' : '#FFFFFF';
+  const accentSoftBg = isThermal ? '#FFFFFF' : BRAND_HEX.orangeFaded;
+  const accentSoftBorder = isThermal ? '#000000' : BRAND_HEX.orange;
+  const subtleGray = isThermal ? '#000000' : BRAND_HEX.grayMid;
+  const subtleBorder = isThermal ? '#000000' : BRAND_HEX.grayBorder;
+  const softFill = isThermal ? '#FFFFFF' : BRAND_HEX.grayLight;
+  const softFillStrong = isThermal ? '#000000' : BRAND_HEX.black;
+  const tagFill = isThermal ? '#000000' : BRAND_HEX.grayLight;
+  const tagText = isThermal ? '#FFFFFF' : BRAND_HEX.black;
+  const tagBorder = isThermal ? '#000000' : BRAND_HEX.grayBorder;
+  const screenPreviewBg = isThermal ? '#E5E7EB' : BRAND_HEX.grayLight;
+
   const autoCloseScript = opts.autoClose
     ? `window.addEventListener('afterprint', () => { setTimeout(() => window.close(), 200); });`
+    : '';
+  const autoPrintScript = opts.autoPrint
+    ? `window.addEventListener('load', () => { setTimeout(() => { window.focus(); window.print(); }, 350); });`
     : '';
 
   return `<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(opts.title)}</title>
     <style>
-      @page { size: 4in 6in; margin: 0; }
+      :root {
+        --mv-black: #000000;
+        --mv-white: #FFFFFF;
+        --mv-accent: ${accentColor};
+        --mv-accent-bg: ${accentBg};
+        --mv-accent-text: ${accentText};
+        --mv-accent-soft-bg: ${accentSoftBg};
+        --mv-accent-soft-border: ${accentSoftBorder};
+        --mv-subtle: ${subtleGray};
+        --mv-subtle-border: ${subtleBorder};
+        --mv-soft-fill: ${softFill};
+        --mv-soft-fill-strong: ${softFillStrong};
+        --mv-tag-fill: ${tagFill};
+        --mv-tag-text: ${tagText};
+        --mv-tag-border: ${tagBorder};
+        --r-md: ${radii.md};
+        --r-sm: ${radii.sm};
+        --r-pill: ${radii.pill};
+      }
+
+      @page { size: ${pageWIn}in ${pageHIn}in; margin: 0; }
       *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
+
       body {
-        font-family: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #000;
-        background: #fff;
-        -webkit-font-smoothing: antialiased;
+        font-family: ${BRAND_FONT_PRINT.sans};
+        color: var(--mv-black);
+        background: var(--mv-white);
+        -webkit-font-smoothing: ${isThermal ? 'subpixel-antialiased' : 'antialiased'};
+        text-rendering: geometricPrecision;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
 
       /* === Página === */
       .page {
-        width: 4in;
-        height: 6in;
+        width: ${pageWIn}in;
+        height: ${pageHIn}in;
         break-after: page;
         page-break-after: always;
         page-break-inside: avoid;
@@ -219,39 +373,52 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
       /* === Etiqueta === */
       .label {
         position: relative;
-        width: 4in;
-        height: 6in;
-        padding: 0.18in 0.18in 0.14in 0.18in;
+        width: ${pageWIn}in;
+        height: ${pageHIn}in;
+        padding: 0.16in;
         display: grid;
-        grid-template-rows: auto auto auto auto 1fr auto;
-        gap: 0.07in;
-        background: #fff;
+        grid-template-rows: auto auto auto auto auto 1fr auto;
+        gap: 0.06in;
+        background: var(--mv-white);
         overflow: hidden;
       }
 
       /* Marcas de esquina (estética + ayuda visual de área de impresión) */
       .corner {
         position: absolute;
-        width: 14px;
-        height: 14px;
-        border-color: #000;
+        width: 12px;
+        height: 12px;
+        border-color: var(--mv-black);
         border-style: solid;
         border-width: 0;
       }
-      .corner.tl { top: 6px; left: 6px; border-top-width: 2px; border-left-width: 2px; }
-      .corner.tr { top: 6px; right: 6px; border-top-width: 2px; border-right-width: 2px; }
-      .corner.bl { bottom: 6px; left: 6px; border-bottom-width: 2px; border-left-width: 2px; }
-      .corner.br { bottom: 6px; right: 6px; border-bottom-width: 2px; border-right-width: 2px; }
+      .corner.tl { top: 4px; left: 4px; border-top-width: 2px; border-left-width: 2px; }
+      .corner.tr { top: 4px; right: 4px; border-top-width: 2px; border-right-width: 2px; }
+      .corner.bl { bottom: 4px; left: 4px; border-bottom-width: 2px; border-left-width: 2px; }
+      .corner.br { bottom: 4px; right: 4px; border-bottom-width: 2px; border-right-width: 2px; }
 
       /* === Banda superior === */
       .brand-bar {
-        background: #000;
-        color: #fff;
-        padding: 6px 10px;
+        background: var(--mv-black);
+        color: var(--mv-white);
+        padding: 5px 9px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-radius: 3px;
+        border-radius: var(--r-sm);
+        position: relative;
+        overflow: hidden;
+      }
+      ${
+        isThermal
+          ? ''
+          : `.brand-bar::after {
+              content: "";
+              position: absolute;
+              left: 0; right: 0; bottom: 0;
+              height: 2px;
+              background: var(--mv-accent);
+            }`
       }
       .brand-text {
         font-size: 14px;
@@ -259,33 +426,85 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         letter-spacing: 0.12em;
         line-height: 1;
       }
-      .brand-mv { color: #fff; }
-      .brand-sv { color: #f97316; margin-left: 1px; }
+      .brand-mv { color: var(--mv-white); }
+      .brand-sv {
+        color: ${isThermal ? 'var(--mv-white)' : 'var(--mv-accent)'};
+        margin-left: 1px;
+        ${isThermal ? 'opacity: .85;' : ''}
+      }
       .brand-meta {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         font-size: 10px;
-        font-weight: 600;
+        font-weight: 700;
         letter-spacing: 0.04em;
       }
       .counter {
         display: inline-flex;
         align-items: baseline;
-        background: #f97316;
-        color: #000;
+        background: ${isThermal ? 'var(--mv-white)' : 'var(--mv-accent)'};
+        color: var(--mv-black);
         padding: 2px 6px;
-        border-radius: 3px;
+        border-radius: var(--r-sm);
         font-weight: 800;
         font-size: 11px;
         letter-spacing: 0;
       }
       .counter-sep { margin: 0 1px; opacity: .7; }
       .brand-date {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+        font-family: ${BRAND_FONT_PRINT.mono};
         font-size: 9.5px;
-        color: #d4d4d4;
+        color: ${isThermal ? '#FFFFFF' : '#D4D4D4'};
         letter-spacing: 0;
+      }
+
+      /* === Bloque de Ruta (Consolidado + Posición) === */
+      .route-block {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+        align-items: stretch;
+      }
+      .route-cell {
+        border: 1.5px solid var(--mv-black);
+        border-radius: var(--r-sm);
+        padding: 4px 7px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+        background: var(--mv-white);
+      }
+      .route-pos {
+        background: var(--mv-black);
+        color: var(--mv-white);
+        align-items: center;
+        justify-content: center;
+        min-width: 0.85in;
+        padding: 4px 10px;
+      }
+      .route-label {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        line-height: 1;
+        opacity: .85;
+      }
+      .route-value {
+        font-family: ${BRAND_FONT_PRINT.mono};
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+        text-transform: uppercase;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .route-value-big {
+        font-size: 22px;
+        letter-spacing: 0.04em;
       }
 
       /* === Bloques genéricos === */
@@ -293,10 +512,11 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
       .info-tag {
         font-size: 8.5px;
         font-weight: 800;
-        color: #000;
-        background: #f0f0f0;
+        color: var(--mv-tag-text);
+        background: var(--mv-tag-fill);
+        border: 1px solid var(--mv-tag-border);
         padding: 2px 6px;
-        border-radius: 2px;
+        border-radius: var(--r-sm);
         text-transform: uppercase;
         letter-spacing: 0.14em;
         display: inline-block;
@@ -306,25 +526,41 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
       /* === Destinatario === */
       .dest-block {
         text-align: center;
-        padding: 8px 4px 6px;
-        border: 2px solid #000;
-        border-radius: 4px;
+        padding: 8px 6px 6px;
+        border: 2px solid var(--mv-black);
+        border-radius: var(--r-md);
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 4px;
+        position: relative;
+      }
+      ${
+        isThermal
+          ? ''
+          : `.dest-block::before {
+              content: "";
+              position: absolute;
+              left: -2px;
+              top: 12px;
+              bottom: 12px;
+              width: 4px;
+              background: var(--mv-accent);
+              border-radius: 2px;
+            }`
       }
       .dest-name {
         font-weight: 900;
-        line-height: 1.02;
+        line-height: 1.0;
         text-transform: uppercase;
         overflow-wrap: anywhere;
         word-break: break-word;
+        color: var(--mv-black);
       }
       .dest-xl { font-size: 38px; }
-      .dest-lg { font-size: 32px; }
-      .dest-md { font-size: 26px; }
-      .dest-sm { font-size: 20px; }
+      .dest-lg { font-size: 30px; }
+      .dest-md { font-size: 24px; }
+      .dest-sm { font-size: 18px; }
       .dest-ref {
         display: inline-flex;
         align-items: center;
@@ -332,35 +568,37 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         margin-top: 2px;
       }
       .ref-tag {
-        background: #000;
-        color: #fff;
+        background: var(--mv-black);
+        color: var(--mv-white);
         font-size: 9px;
         font-weight: 800;
         letter-spacing: 0.14em;
         padding: 2px 6px;
-        border-radius: 2px;
+        border-radius: var(--r-sm);
       }
       .ref-val {
         font-size: 13px;
         font-weight: 800;
         letter-spacing: 0.04em;
+        font-family: ${BRAND_FONT_PRINT.mono};
       }
 
       /* === Grid info (shipper / peso) === */
       .grid-info {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 8px;
+        gap: 6px;
         align-items: stretch;
       }
       .info-cell {
-        border: 1px solid #000;
-        border-radius: 3px;
+        border: 1px solid var(--mv-black);
+        border-radius: var(--r-sm);
         padding: 4px 6px;
         display: flex;
         flex-direction: column;
         gap: 2px;
         min-width: 0;
+        background: var(--mv-white);
       }
       .info-cell-right { align-items: flex-end; }
       .info-value {
@@ -369,11 +607,12 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         line-height: 1.2;
         text-transform: uppercase;
         overflow-wrap: anywhere;
+        color: var(--mv-black);
       }
       .info-sub {
         font-size: 10px;
         font-weight: 600;
-        color: #444;
+        color: var(--mv-subtle);
         line-height: 1.2;
       }
       .chips {
@@ -385,14 +624,16 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         display: inline-flex;
         align-items: baseline;
         gap: 3px;
-        border: 1px solid #000;
+        border: 1px solid var(--mv-black);
         padding: 2px 6px;
-        border-radius: 999px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        border-radius: var(--r-pill);
+        font-family: ${BRAND_FONT_PRINT.mono};
+        background: var(--mv-white);
+        color: var(--mv-black);
       }
       .chip-strong {
-        background: #000;
-        color: #fff;
+        background: var(--mv-black);
+        color: var(--mv-white);
       }
       .chip-num {
         font-size: 12px;
@@ -407,8 +648,9 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
 
       /* === Contenido === */
       .content-block {
-        border: 1px solid #000;
-        border-radius: 3px;
+        border: 1px solid var(--mv-subtle-border);
+        background: var(--mv-soft-fill);
+        border-radius: var(--r-sm);
         padding: 4px 6px;
         display: flex;
         flex-direction: column;
@@ -419,6 +661,7 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         line-height: 1.25;
         font-weight: 600;
         text-transform: uppercase;
+        color: var(--mv-black);
         max-height: 2.6em;
         overflow: hidden;
         display: -webkit-box;
@@ -426,60 +669,56 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         -webkit-box-orient: vertical;
       }
 
-      /* === Código de barras === */
-      .barcode-block {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
+      /* === Códigos (barcode + opcional QR) === */
+      .codes-block {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        align-items: stretch;
         padding-top: 2px;
       }
-      .consol-badge {
-        position: absolute;
-        top: -2px;
-        right: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: #fff;
-        border: 1px solid #000;
-        padding: 1px 5px;
-        border-radius: 2px;
-      }
-      .consol-label {
-        font-size: 8px;
-        font-weight: 800;
-        letter-spacing: 0.1em;
-        background: #000;
-        color: #fff;
-        padding: 1px 3px;
-        border-radius: 1px;
-      }
-      .consol-val {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 10px;
-        font-weight: 800;
+      .codes-block.with-qr {
+        grid-template-columns: 1fr auto;
       }
       .barcode-frame {
-        width: 100%;
-        border: 1.5px solid #000;
-        border-radius: 3px;
+        border: 1.5px solid var(--mv-black);
+        border-radius: var(--r-sm);
         padding: 6px 8px 4px;
-        background: #fff;
+        background: var(--mv-white);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        min-width: 0;
       }
       .barcode-svg svg {
         display: block;
         width: 100%;
-        height: 0.75in;
+        height: 0.78in;
       }
       .guide-number {
         font-size: 22px;
         font-weight: 800;
         letter-spacing: 0.18em;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-family: ${BRAND_FONT_PRINT.mono};
         text-align: center;
         margin-top: 2px;
+        color: var(--mv-black);
+      }
+      .qr-frame {
+        border: 1.5px solid var(--mv-black);
+        border-radius: var(--r-sm);
+        padding: 4px;
+        background: var(--mv-white);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0.95in;
+      }
+      .qr-frame svg {
+        display: block;
+        width: 0.90in;
+        height: 0.90in;
       }
 
       /* === Pie === */
@@ -487,27 +726,69 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-top: 1px solid #000;
+        gap: 6px;
+        border-top: 1px solid var(--mv-black);
         padding-top: 4px;
         font-size: 8.5px;
         font-weight: 700;
         letter-spacing: 0.06em;
-        color: #000;
+        color: var(--mv-black);
         text-transform: uppercase;
       }
-      .foot-right { color: #555; font-weight: 600; }
+      .foot-left {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: ${BRAND_FONT_PRINT.mono};
+        letter-spacing: 0.04em;
+      }
+      .foot-tail {
+        background: var(--mv-black);
+        color: var(--mv-white);
+        font-family: ${BRAND_FONT_PRINT.mono};
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        padding: 2px 6px;
+        border-radius: var(--r-sm);
+      }
+      .foot-right {
+        color: var(--mv-subtle);
+        font-weight: 600;
+        text-transform: lowercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
 
-      /* Vista previa en pantalla (cuando aún no se imprime) */
+      /* === Vista previa en pantalla === */
       @media screen {
         body {
-          background: #e5e7eb;
+          background: ${screenPreviewBg};
           padding: 24px;
         }
         .page {
           margin: 0 auto 24px;
-          background: #fff;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+          background: var(--mv-white);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+          ${isThermal ? '' : 'border-radius: 6px;'}
         }
+      }
+
+      /* === Ajustes específicos para tamaños pequeños === */
+      ${
+        opts.pageSize === '2x4' || opts.pageSize === '3x5'
+          ? `
+        .dest-xl { font-size: 26px; }
+        .dest-lg { font-size: 22px; }
+        .dest-md { font-size: 18px; }
+        .dest-sm { font-size: 14px; }
+        .guide-number { font-size: 16px; letter-spacing: 0.12em; }
+        .barcode-svg svg { height: 0.55in; }
+        .label { padding: 0.10in; gap: 0.05in; }
+      `
+          : ''
       }
     </style>
   </head>
@@ -515,22 +796,28 @@ function buildHtml(labels: PackageLabel[], opts: Required<PrintOptions>) {
     ${pageHtml}
     <script>
       ${autoCloseScript}
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          window.focus();
-          window.print();
-        }, 350);
-      });
+      ${autoPrintScript}
     </script>
   </body>
 </html>`;
 }
 
-export function printPackageLabels(labels: PackageLabel[], options?: PrintOptions) {
+// =============================================================================
+// API pública
+// =============================================================================
+
+export async function printPackageLabels(
+  labels: PackageLabel[],
+  options?: PrintOptions,
+): Promise<void> {
   const opts: Required<PrintOptions> = {
-    pageSize: '4x6',
+    pageSize: options?.pageSize ?? '4x6',
+    orientation: options?.orientation ?? 'portrait',
+    mode: options?.mode ?? 'thermal',
     title: options?.title ?? 'Etiquetas',
+    withQR: options?.withQR ?? false,
     autoClose: options?.autoClose ?? false,
+    autoPrint: options?.autoPrint ?? true,
   };
 
   if (!labels.length) return;
@@ -542,8 +829,25 @@ export function printPackageLabels(labels: PackageLabel[], options?: PrintOption
     return;
   }
 
-  const html = buildHtml(labels, opts);
+  // Mensaje provisional mientras se generan los QR
   w.document.open();
-  w.document.write(html);
-  w.document.close();
+  w.document.write(
+    `<!doctype html><meta charset="utf-8"><title>${escapeHtml(opts.title)}</title>` +
+      `<body style="font-family:${BRAND_FONT_PRINT.sans};color:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#F8F9FA">` +
+      `<div style="text-align:center"><div style="font-size:14px;font-weight:700;letter-spacing:.06em">Generando etiquetas…</div><div style="font-size:11px;color:#737373;margin-top:6px">Mantén esta pestaña abierta</div></div></body>`,
+  );
+
+  try {
+    const html = await buildHtml(labels, opts);
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  } catch (err) {
+    console.error('Error generando etiquetas:', err);
+    w.document.open();
+    w.document.write(
+      `<!doctype html><meta charset="utf-8"><body style="font-family:${BRAND_FONT_PRINT.sans};padding:24px;color:#000"><h1 style="font-size:16px">No se pudieron generar las etiquetas</h1><pre style="font-size:11px;color:#DC2626">${escapeHtml(String(err))}</pre></body>`,
+    );
+    w.document.close();
+  }
 }

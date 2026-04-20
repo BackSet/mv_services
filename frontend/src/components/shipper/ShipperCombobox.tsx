@@ -174,7 +174,7 @@ export function ShipperCombobox({
                 role="button"
                 aria-label="Quitar selección"
                 tabIndex={-1}
-                className="h-4 w-4 rounded-sm hover:bg-accent flex items-center justify-center"
+                className="h-4 w-4 rounded-sm hover:bg-muted flex items-center justify-center"
                 onPointerDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -224,7 +224,7 @@ export function ShipperCombobox({
               {search && (
                 <button
                   type="button"
-                  className="ml-1 h-5 w-5 rounded-sm hover:bg-accent flex items-center justify-center"
+                  className="ml-1 h-5 w-5 rounded-sm hover:bg-muted flex items-center justify-center"
                   onClick={() => {
                     setSearch('');
                     inputRef.current?.focus();
@@ -256,9 +256,12 @@ export function ShipperCombobox({
                       role="option"
                       aria-selected={isSelected}
                       className={cn(
-                        'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
-                        isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60',
-                        isSelected && !isActive && 'bg-accent/40',
+                        'group relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors',
+                        isSelected
+                          ? 'bg-accent-soft text-accent-soft-foreground'
+                          : 'text-foreground',
+                        isActive && !isSelected && 'bg-muted text-foreground',
+                        isActive && isSelected && 'ring-1 ring-inset ring-accent/50',
                       )}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onPointerDown={(e) => {
@@ -271,13 +274,18 @@ export function ShipperCombobox({
                       <Check
                         className={cn(
                           'mr-2 h-4 w-4 shrink-0',
-                          isSelected ? 'opacity-100' : 'opacity-0',
+                          isSelected ? 'opacity-100 text-accent' : 'opacity-0',
                         )}
                       />
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-sm truncate">{s.nombre}</span>
+                        <span className="text-sm truncate font-medium">{s.nombre}</span>
                         {(s.nombreEncargado || cantones) && (
-                          <span className="text-[11px] text-muted-foreground truncate">
+                          <span
+                            className={cn(
+                              'text-[11px] truncate',
+                              isSelected ? 'text-current/75' : 'text-muted-foreground',
+                            )}
+                          >
                             {[s.nombreEncargado, cantones].filter(Boolean).join(' · ')}
                           </span>
                         )}

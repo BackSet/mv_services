@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -15,17 +15,20 @@ import {
   Building2,
   Search,
   Eye,
-  Loader2,
+  ListChecks,
+  FilterX,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import { KpiCard } from '@/components/layout/KpiCard';
-import { LoadingState } from '@/components/states/LoadingState';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import EmptyState from '@/components/notion/EmptyState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { processPool } from '@/lib/concurrency';
 import {
   Dialog,
   DialogContent,
@@ -71,20 +74,20 @@ function formatDate(dateStr?: string | null): string {
 function estadoBadge(estado: EstadoSolicitudShipper) {
   if (estado === 'PENDIENTE') {
     return (
-      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
+      <Badge variant="outline" className="text-[10px] bg-warning/15 text-warning border-warning/30">
         <Clock className="h-3 w-3 mr-1" /> Pendiente
       </Badge>
     );
   }
   if (estado === 'APROBADA') {
     return (
-      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+      <Badge variant="outline" className="text-[10px] bg-success/15 text-success border-success/30">
         <CheckCircle2 className="h-3 w-3 mr-1" /> Aprobada
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-600 border-red-500/30">
+    <Badge variant="outline" className="text-[10px] bg-destructive/15 text-destructive border-destructive/30">
       <XCircle className="h-3 w-3 mr-1" /> Rechazada
     </Badge>
   );
@@ -111,8 +114,13 @@ export default function SolicitudesShippersPage() {
 
   const [actionId, setActionId] = useState<number | null>(null);
   const [rejectingFor, setRejectingFor] = useState<ShipperSolicitud | null>(null);
+  const [rejectingBulk, setRejectingBulk] = useState<ShipperSolicitud[] | null>(null);
   const [rejectMotivo, setRejectMotivo] = useState('');
   const [submittingReject, setSubmittingReject] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [keyboardFocusId, setKeyboardFocusId] = useState<number | null>(null);
+  const cardRefs = useRef<Map<number, HTMLElement>>(new Map());
   const invalidate = useInvalidateSolicitudes();
 
   const load = useCallback(async () => {
@@ -202,12 +210,42 @@ export default function SolicitudesShippersPage() {
   }
 
   async function confirmReject() {
-    if (!rejectingFor) return;
     const motivo = rejectMotivo.trim();
     if (motivo.length < 4) {
       toast.error('Motivo demasiado corto', { description: 'Indica al menos 4 caracteres.' });
       return;
     }
+    if (rejectingBulk && rejectingBulk.length > 0) {
+      setSubmittingReject(true);
+      let ok = 0;
+      const fallidos: string[] = [];
+      try {
+        await processPool(rejectingBulk, 4, async (s) => {
+          try {
+            await rechazarSolicitud(s.id, motivo);
+            ok++;
+          } catch (e) {
+            console.error('Error rechazando solicitud', s.id, e);
+            fallidos.push(s.username);
+          }
+        });
+        if (ok > 0) {
+          toast.success(`${ok} solicitud${ok !== 1 ? 'es' : ''} rechazada${ok !== 1 ? 's' : ''}.`);
+        }
+        if (fallidos.length > 0) {
+          toast.error(`No se pudieron rechazar ${fallidos.length}: ${fallidos.slice(0, 3).join(', ')}${fallidos.length > 3 ? '…' : ''}`);
+        }
+        setRejectingBulk(null);
+        setRejectMotivo('');
+        setSelectedIds(new Set());
+        await load();
+        invalidate();
+      } finally {
+        setSubmittingReject(false);
+      }
+      return;
+    }
+    if (!rejectingFor) return;
     setSubmittingReject(true);
     try {
       await rechazarSolicitud(rejectingFor.id, motivo);
@@ -225,10 +263,113 @@ export default function SolicitudesShippersPage() {
     }
   }
 
+  // Solo se pueden seleccionar y operar en lote las pendientes
+  const pendientesFiltradas = useMemo(
+    () => filtered.filter((s) => s.estado === 'PENDIENTE'),
+    [filtered],
+  );
+  const pendientesSeleccionadas = useMemo(
+    () => pendientesFiltradas.filter((s) => selectedIds.has(s.id)),
+    [pendientesFiltradas, selectedIds],
+  );
+  const allPendientesSelected =
+    pendientesFiltradas.length > 0 && pendientesSeleccionadas.length === pendientesFiltradas.length;
+
+  const toggleSelectAllPendientes = () => {
+    if (allPendientesSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendientesFiltradas.map((s) => s.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const aprobarSeleccion = async () => {
+    if (pendientesSeleccionadas.length === 0) return;
+    setBulkBusy(true);
+    let ok = 0;
+    const fallidos: string[] = [];
+    try {
+      await processPool(pendientesSeleccionadas, 4, async (s) => {
+        try {
+          await aprobarSolicitud(s.id);
+          ok++;
+        } catch (e) {
+          console.error('Error aprobando solicitud', s.id, e);
+          fallidos.push(s.username);
+        }
+      });
+      if (ok > 0) {
+        toast.success(`${ok} solicitud${ok !== 1 ? 'es' : ''} aprobada${ok !== 1 ? 's' : ''}.`);
+      }
+      if (fallidos.length > 0) {
+        toast.error(`No se pudieron aprobar ${fallidos.length}: ${fallidos.slice(0, 3).join(', ')}${fallidos.length > 3 ? '…' : ''}`);
+      }
+      setSelectedIds(new Set());
+      await load();
+      invalidate();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const abrirRechazoLote = () => {
+    if (pendientesSeleccionadas.length === 0) return;
+    setRejectingBulk(pendientesSeleccionadas);
+    setRejectMotivo('');
+  };
+
+  // Atajos: A para aprobar, R para rechazar la tarjeta enfocada o la primera pendiente
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || target?.isContentEditable;
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const candidatoId = keyboardFocusId ?? pendientesFiltradas[0]?.id ?? null;
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+        return;
+      }
+      if (e.key.toLowerCase() === 'a' && pendientesSeleccionadas.length > 0) {
+        e.preventDefault();
+        void aprobarSeleccion();
+        return;
+      }
+      if (e.key.toLowerCase() === 'r' && pendientesSeleccionadas.length > 0) {
+        e.preventDefault();
+        abrirRechazoLote();
+        return;
+      }
+      if (candidatoId == null) return;
+      const sol = pendientesFiltradas.find((s) => s.id === candidatoId);
+      if (!sol) return;
+      if (e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        void onAprobar(sol);
+      } else if (e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        openRejectDialog(sol);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyboardFocusId, pendientesFiltradas, pendientesSeleccionadas]);
+
   return (
     <DashboardLayout>
       <StandardPageLayout
-        icon={<Inbox className="h-5 w-5 text-primary" />}
+        icon={<Inbox className="h-5 w-5 text-accent" />}
         title="Solicitudes de shippers"
         subtitle="Aprueba o rechaza el registro de nuevos shippers."
         actions={
@@ -299,9 +440,9 @@ export default function SolicitudesShippersPage() {
                       type="button"
                       onClick={() => setTab(t.id)}
                       className={cn(
-                        'inline-flex items-center gap-2 h-8 px-3 rounded-lg text-xs font-medium transition-all',
+                        'inline-flex items-center gap-2 h-8 px-3 rounded-lg text-xs font-medium transition-all ease-claude',
                         active
-                          ? 'bg-background shadow-sm text-foreground border border-border/60'
+                          ? 'bg-background shadow-soft text-foreground border border-border/60'
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
                       )}
                     >
@@ -310,7 +451,7 @@ export default function SolicitudesShippersPage() {
                       <span
                         className={cn(
                           'inline-flex items-center justify-center min-w-[20px] h-[18px] px-1 rounded-full text-[10px] font-bold',
-                          active ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                          active ? 'bg-accent-soft text-accent-soft-foreground' : 'bg-muted text-muted-foreground',
                         )}
                       >
                         {cnt}
@@ -324,7 +465,7 @@ export default function SolicitudesShippersPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por nombre, username, email…"
+                  placeholder="Buscar por usuario, email, nombre, encargado o código…"
                   className="h-9 pl-9 text-sm"
                 />
               </div>
@@ -333,7 +474,7 @@ export default function SolicitudesShippersPage() {
 
           {/* Contenido */}
           {loading ? (
-            <LoadingState label="Cargando solicitudes…" />
+            <CardGridSkeleton cards={4} fields={4} />
           ) : error ? (
             <ErrorState
               title="No se pudieron cargar las solicitudes"
@@ -358,22 +499,119 @@ export default function SolicitudesShippersPage() {
             />
           ) : (
             <div className="grid gap-3">
+              {/* Barra de selección masiva (solo aplica a pendientes) */}
+              {pendientesFiltradas.length > 0 && (
+                <div
+                  className={cn(
+                    'flex items-center justify-between gap-3 flex-wrap rounded-xl border px-3 py-2 transition-all ease-claude',
+                    pendientesSeleccionadas.length > 0
+                      ? 'border-accent/40 bg-accent-soft/40'
+                      : 'border-border/40 bg-muted/20',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 text-xs">
+                    <Checkbox
+                      checked={
+                        allPendientesSelected
+                          ? true
+                          : pendientesSeleccionadas.length > 0
+                          ? 'indeterminate'
+                          : false
+                      }
+                      onCheckedChange={() => toggleSelectAllPendientes()}
+                      aria-label="Seleccionar todas las pendientes"
+                    />
+                    <ListChecks className="h-3.5 w-3.5 text-muted-foreground" />
+                    {pendientesSeleccionadas.length > 0 ? (
+                      <span className="font-medium text-foreground">
+                        {pendientesSeleccionadas.length} de {pendientesFiltradas.length} pendientes seleccionada
+                        {pendientesSeleccionadas.length !== 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Selecciona pendientes para aprobar o rechazar en lote ·{' '}
+                        <kbd className="px-1 py-0.5 rounded bg-muted text-[10px] font-mono">A</kbd> aprueba ·{' '}
+                        <kbd className="px-1 py-0.5 rounded bg-muted text-[10px] font-mono">R</kbd> rechaza
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {pendientesSeleccionadas.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={() => setSelectedIds(new Set())}
+                        disabled={bulkBusy}
+                      >
+                        <FilterX className="h-3.5 w-3.5 mr-1" />
+                        Limpiar
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={abrirRechazoLote}
+                      disabled={pendientesSeleccionadas.length === 0 || bulkBusy}
+                      title="Atajo: R"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Rechazar ({pendientesSeleccionadas.length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-8 text-xs gap-1.5"
+                      onClick={() => void aprobarSeleccion()}
+                      disabled={pendientesSeleccionadas.length === 0 || bulkBusy}
+                      loading={bulkBusy}
+                      loadingText="Aprobando…"
+                      title="Atajo: A"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Aprobar ({pendientesSeleccionadas.length})
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {filtered.map((s) => {
                 const isFocused = focusId === s.id;
+                const isPendiente = s.estado === 'PENDIENTE';
+                const isSelected = selectedIds.has(s.id);
                 return (
                   <article
                     key={s.id}
+                    ref={(el) => {
+                      if (el) cardRefs.current.set(s.id, el);
+                      else cardRefs.current.delete(s.id);
+                    }}
+                    tabIndex={isPendiente ? 0 : -1}
+                    onFocus={() => isPendiente && setKeyboardFocusId(s.id)}
+                    onBlur={() => setKeyboardFocusId((prev) => (prev === s.id ? null : prev))}
                     className={cn(
-                      'rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden transition-all',
+                      'rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden transition-all ease-claude shadow-soft outline-none',
                       isFocused
-                        ? 'border-primary/60 shadow-lg ring-2 ring-primary/30'
-                        : 'border-border/40 hover:border-border/70',
+                        ? 'border-accent shadow-card ring-2 ring-accent/30'
+                        : isSelected
+                        ? 'border-accent/60 ring-1 ring-accent/30 shadow-card'
+                        : 'border-border/40 hover:border-border/70 hover:shadow-card',
+                      isPendiente && 'focus-visible:ring-2 focus-visible:ring-accent/40',
                     )}
                   >
                     <div className="p-4 sm:p-5 flex flex-col gap-4">
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div className="flex items-start gap-3 min-w-0">
-                          <div className="h-11 w-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                          {isPendiente && (
+                            <div className="pt-1">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSelect(s.id)}
+                                aria-label={`Seleccionar solicitud de ${s.username}`}
+                              />
+                            </div>
+                          )}
+                          <div className="h-11 w-11 rounded-xl bg-warning/15 text-warning flex items-center justify-center shrink-0">
                             <UserPlus className="h-5 w-5" />
                           </div>
                           <div className="min-w-0">
@@ -396,7 +634,7 @@ export default function SolicitudesShippersPage() {
                                 variant="outline"
                                 onClick={() => openRejectDialog(s)}
                                 disabled={actionId != null}
-                                className="h-9 border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-600"
+                                className="h-9 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <XCircle className="h-4 w-4 mr-1.5" />
                                 Rechazar
@@ -405,13 +643,11 @@ export default function SolicitudesShippersPage() {
                                 size="sm"
                                 onClick={() => void onAprobar(s)}
                                 disabled={actionId != null}
-                                className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                loading={actionId === s.id}
+                                loadingText="Aprobando…"
+                                className="h-9"
                               >
-                                {actionId === s.id ? (
-                                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                                )}
+                                <CheckCircle2 className="h-4 w-4 mr-1.5" />
                                 Aprobar
                               </Button>
                             </>
@@ -438,10 +674,10 @@ export default function SolicitudesShippersPage() {
                       </div>
 
                       {s.estado === 'RECHAZADA' && s.motivoRechazo && (
-                        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                           <div>
-                            <div className="text-xs uppercase tracking-wider text-red-600 font-semibold">
+                            <div className="text-xs uppercase tracking-wider text-destructive font-semibold">
                               Motivo de rechazo
                             </div>
                             <p className="text-foreground/90 mt-0.5">{s.motivoRechazo}</p>
@@ -462,21 +698,28 @@ export default function SolicitudesShippersPage() {
           )}
         </PageContent>
 
-        {/* Diálogo de rechazo */}
+        {/* Diálogo de rechazo (individual o lote) */}
         <Dialog
-          open={Boolean(rejectingFor)}
+          open={Boolean(rejectingFor) || Boolean(rejectingBulk)}
           onOpenChange={(open) => {
             if (!open && !submittingReject) {
               setRejectingFor(null);
+              setRejectingBulk(null);
               setRejectMotivo('');
             }
           }}
         >
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Rechazar solicitud</DialogTitle>
+              <DialogTitle>
+                {rejectingBulk
+                  ? `Rechazar ${rejectingBulk.length} solicitud${rejectingBulk.length !== 1 ? 'es' : ''}`
+                  : 'Rechazar solicitud'}
+              </DialogTitle>
               <DialogDescription>
-                Indica un motivo para que el solicitante entienda por qué se rechazó.
+                {rejectingBulk
+                  ? 'Se aplicará el mismo motivo a todas las solicitudes seleccionadas.'
+                  : 'Indica un motivo para que el solicitante entienda por qué se rechazó.'}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
@@ -490,7 +733,7 @@ export default function SolicitudesShippersPage() {
                 rows={4}
                 maxLength={500}
                 placeholder="Ej: Datos incompletos / no se pudo verificar la empresa…"
-                className="w-full rounded-lg border border-border/60 bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full rounded-lg border border-border/60 bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
               />
               <div className="text-right text-[10px] text-muted-foreground">
                 {rejectMotivo.length}/500
@@ -499,7 +742,11 @@ export default function SolicitudesShippersPage() {
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setRejectingFor(null)}
+                onClick={() => {
+                  setRejectingFor(null);
+                  setRejectingBulk(null);
+                  setRejectMotivo('');
+                }}
                 disabled={submittingReject}
               >
                 Cancelar
@@ -507,10 +754,13 @@ export default function SolicitudesShippersPage() {
               <Button
                 variant="destructive"
                 onClick={() => void confirmReject()}
-                disabled={submittingReject || rejectMotivo.trim().length < 4}
+                disabled={rejectMotivo.trim().length < 4}
+                loading={submittingReject}
+                loadingText={rejectingBulk ? 'Rechazando lote…' : 'Rechazando…'}
               >
-                {submittingReject && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-                Rechazar solicitud
+                {rejectingBulk
+                  ? `Rechazar ${rejectingBulk.length} solicitud${rejectingBulk.length !== 1 ? 'es' : ''}`
+                  : 'Rechazar solicitud'}
               </Button>
             </DialogFooter>
           </DialogContent>

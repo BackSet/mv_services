@@ -6,9 +6,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,7 +40,8 @@ public class Shipper {
     private List<Telefono> telefonos = new ArrayList<>();
 
     @OneToMany(mappedBy = "shipper", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     @Builder.Default
-    private List<DireccionShipper> direcciones = new ArrayList<>();
+    private Set<DireccionShipper> direcciones = new LinkedHashSet<>();
 }
 

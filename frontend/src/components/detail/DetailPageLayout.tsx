@@ -40,8 +40,8 @@ export function DetailPageLayout({
     <div className={cn('w-full flex-1 flex flex-col h-full overflow-hidden bg-background', className)}>
       <div
         className={cn(
-          'px-4 sm:px-6 py-4 border-b border-border/40 bg-background/95 backdrop-blur z-10 shrink-0',
-          headerContainerClassName
+          'px-6 sm:px-8 lg:px-10 py-6 border-b border-border/60 bg-background/85 backdrop-blur z-10 shrink-0',
+          headerContainerClassName,
         )}
       >
         <DetailHeader
@@ -53,7 +53,7 @@ export function DetailPageLayout({
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+      <div className="flex-1 overflow-y-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10">
         <div className={cn('w-full mx-auto space-y-8', maxWidthClass[maxWidth], contentClassName)}>
           {children}
         </div>

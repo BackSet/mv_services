@@ -79,7 +79,7 @@ export function PaqueteSearchCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar por guía, destinatario, ref, shipper…" />
+          <CommandInput placeholder="Buscar por guía, destinatario, ref, contenido o shipper…" />
           <CommandList>
             <CommandEmpty>No se encontraron paquetes disponibles.</CommandEmpty>
             <CommandGroup heading={`${available.length} paquete${available.length !== 1 ? 's' : ''} sin consolidado`}>

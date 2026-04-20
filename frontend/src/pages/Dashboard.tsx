@@ -20,39 +20,31 @@ import { cn } from '@/lib/utils';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import { Button } from '@/components/ui/button';
 import { PageContent } from '@/components/layout/PageContent';
+import { KpiCard, type KpiAccent } from '@/components/layout/KpiCard';
+import { ListRowsSkeleton } from '@/components/skeletons';
 
-const PANEL_CLASS = 'rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-5';
+const PANEL_CLASS = 'rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-5 shadow-soft';
 
 function StatCard({
   icon: Icon,
   label,
   value,
   loading,
-  highlight,
+  accent = 'primary',
 }: {
   icon: React.ElementType;
   label: string;
   value: number;
   loading: boolean;
-  highlight?: boolean;
+  accent?: KpiAccent;
 }) {
   return (
-    <div
-      className={cn(
-        'rounded-2xl border border-border/40 bg-card/50 backdrop-blur-sm p-4 flex flex-col gap-3 transition-colors',
-        highlight
-          ? 'border-orange-400/60 bg-orange-50/40 dark:bg-orange-950/20 dark:border-orange-500/40'
-          : ''
-      )}
-    >
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        <Icon className={cn('w-3.5 h-3.5', highlight && 'text-orange-500')} />
-        {label}
-      </div>
-      <div className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
-        {loading ? '—' : value.toLocaleString('es-EC')}
-      </div>
-    </div>
+    <KpiCard
+      icon={<Icon className="h-4 w-4" />}
+      label={label}
+      accent={accent}
+      value={loading ? '—' : value.toLocaleString('es-EC')}
+    />
   );
 }
 
@@ -106,14 +98,14 @@ function PipelineRow({
   color?: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted transition-colors ease-claude">
       <div className="flex items-center gap-3">
         <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center text-xs', color || 'bg-muted text-muted-foreground')}>
           {icon}
         </div>
         <span className="text-sm font-medium text-foreground">{label}</span>
       </div>
-      <span className="text-xs font-semibold bg-muted text-muted-foreground px-2 py-0.5 rounded-full tabular-nums">
+      <span className="text-xs font-semibold bg-muted text-muted-foreground px-2 py-0.5 rounded-full tabular-nums min-w-[28px] inline-flex justify-center">
         {loading ? '—' : count}
       </span>
     </div>
@@ -137,7 +129,7 @@ function ListRow({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
-      className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+      className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted transition-colors ease-claude cursor-pointer group"
     >
       <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
       <div className="flex-1 min-w-0">
@@ -204,10 +196,10 @@ function DashboardOps() {
         <PageContent>
           {/* Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} />
-            <StatCard icon={AlertCircle} label="Atenciones Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} highlight />
-            <StatCard icon={Truck} label="Consolidados Abiertos" value={consolidadosAbiertos} loading={loadingConsolidados} />
-            <StatCard icon={Boxes} label="Shippers" value={totalShippers} loading={loadingShippers} />
+            <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} accent="primary" />
+            <StatCard icon={AlertCircle} label="Atenciones Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} accent="warning" />
+            <StatCard icon={Truck} label="Consolidados Abiertos" value={consolidadosAbiertos} loading={loadingConsolidados} accent="info" />
+            <StatCard icon={Boxes} label="Shippers" value={totalShippers} loading={loadingShippers} accent="brand" />
           </div>
 
           <div className={PANEL_CLASS}>
@@ -216,25 +208,25 @@ function DashboardOps() {
               <button
                 type="button"
                 onClick={() => navigate('/paquetes/new')}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted hover:border-foreground/20 transition-colors ease-claude text-left"
               >
-                <PlusCircle className="h-4 w-4 text-primary" />
+                <PlusCircle className="h-4 w-4 text-accent" />
                 Nuevo paquete
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/consolidados/new')}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted hover:border-foreground/20 transition-colors ease-claude text-left"
               >
-                <ClipboardList className="h-4 w-4 text-primary" />
+                <ClipboardList className="h-4 w-4 text-accent" />
                 Nuevo consolidado
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/shippers')}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted hover:border-foreground/20 transition-colors ease-claude text-left"
               >
-                <Users className="h-4 w-4 text-primary" />
+                <Users className="h-4 w-4 text-accent" />
                 Gestionar shippers
               </button>
             </div>
@@ -256,28 +248,28 @@ function DashboardOps() {
                   label="Total"
                   count={totalPaquetes}
                   loading={loadingPaquetes}
-                  color="bg-blue-100 dark:bg-blue-900/30"
+                  color="bg-info/15 text-info"
                 />
                 <PipelineRow
                   icon="🔗"
                   label="Con consolidado"
                   count={totalPaquetes - paquetesSinConsolidado}
                   loading={loadingPaquetes}
-                  color="bg-emerald-100 dark:bg-emerald-900/30"
+                  color="bg-success/15 text-success"
                 />
                 <PipelineRow
                   icon="📭"
                   label="Sin consolidado"
                   count={paquetesSinConsolidado}
                   loading={loadingPaquetes}
-                  color="bg-amber-100 dark:bg-amber-900/30"
+                  color="bg-warning/15 text-warning"
                 />
                 <PipelineRow
                   icon="⚠️"
                   label="Sin shipper"
                   count={paquetesSinShipper}
                   loading={loadingPaquetes}
-                  color="bg-red-100 dark:bg-red-900/30"
+                  color="bg-destructive/15 text-destructive"
                 />
               </div>
             </div>
@@ -292,7 +284,7 @@ function DashboardOps() {
                 onLink={() => navigate('/paquetes')}
               />
               {loadingPaquetes ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">Cargando...</div>
+                <ListRowsSkeleton rows={4} />
               ) : atencionesPendientes.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-4 text-center">Sin atenciones pendientes</div>
               ) : (
@@ -330,7 +322,7 @@ function DashboardOps() {
                   onLink={() => navigate('/consolidados')}
                 />
                 {loadingConsolidados ? (
-                  <div className="text-sm text-muted-foreground py-4 text-center">Cargando...</div>
+                  <ListRowsSkeleton rows={4} />
                 ) : consolidadosRecientes.length === 0 ? (
                   <div className="text-sm text-muted-foreground py-4 text-center">Sin consolidados</div>
                 ) : (
@@ -355,7 +347,7 @@ function DashboardOps() {
                   onLink={() => navigate('/paquetes')}
                 />
                 {loadingPaquetes ? (
-                  <div className="text-sm text-muted-foreground py-4 text-center">Cargando...</div>
+                  <ListRowsSkeleton rows={4} />
                 ) : paquetesRecientes.length === 0 ? (
                   <div className="text-sm text-muted-foreground py-4 text-center">Sin paquetes</div>
                 ) : (
@@ -414,9 +406,9 @@ function DashboardShipper() {
       >
         <PageContent>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} />
-            <StatCard icon={AlertCircle} label="Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} highlight />
-            <StatCard icon={Boxes} label="Sin Consolidado" value={paquetesSinConsolidado} loading={loadingPaquetes} />
+            <StatCard icon={Package} label="Total Paquetes" value={totalPaquetes} loading={loadingPaquetes} accent="primary" />
+            <StatCard icon={AlertCircle} label="Pendientes" value={atencionesPendientes.length} loading={loadingPaquetes} accent="warning" />
+            <StatCard icon={Boxes} label="Sin Consolidado" value={paquetesSinConsolidado} loading={loadingPaquetes} accent="info" />
           </div>
 
           <div className={PANEL_CLASS}>
@@ -425,17 +417,17 @@ function DashboardShipper() {
               <button
                 type="button"
                 onClick={() => navigate('/paquetes/new')}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted hover:border-foreground/20 transition-colors ease-claude text-left"
               >
-                <PlusCircle className="h-4 w-4 text-primary" />
+                <PlusCircle className="h-4 w-4 text-accent" />
                 Registrar paquete
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/paquetes')}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
+                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted hover:border-foreground/20 transition-colors ease-claude text-left"
               >
-                <ClipboardList className="h-4 w-4 text-primary" />
+                <ClipboardList className="h-4 w-4 text-accent" />
                 Ver mis paquetes
               </button>
             </div>
@@ -451,7 +443,7 @@ function DashboardShipper() {
                 onLink={() => navigate('/paquetes')}
               />
               {loadingPaquetes ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">Cargando...</div>
+                <ListRowsSkeleton rows={5} />
               ) : atencionesPendientes.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-4 text-center">Sin atenciones pendientes</div>
               ) : (
@@ -487,7 +479,7 @@ function DashboardShipper() {
                 onLink={() => navigate('/paquetes')}
               />
               {loadingPaquetes ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">Cargando...</div>
+                <ListRowsSkeleton rows={5} />
               ) : paquetesRecientes.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-4 text-center">Sin paquetes</div>
               ) : (

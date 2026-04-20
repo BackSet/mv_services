@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-2",
     {
         variants: {
             variant: {
@@ -13,12 +13,27 @@ const badgeVariants = cva(
                 secondary:
                     "border-transparent bg-muted text-muted-foreground hover:bg-muted/80",
                 destructive:
-                    "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-                outline: "text-foreground",
-                warning: "border-transparent bg-amber-500/15 text-amber-500 hover:bg-amber-500/25",
-                success: "border-transparent bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25",
-                role: "border-transparent bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-200",
-                orange: "border-transparent bg-orange-500/15 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400",
+                    "border-transparent bg-destructive/15 text-destructive hover:bg-destructive/25",
+                outline: "border-border text-foreground",
+                /** Acento de marca (naranja MV) en versión soft */
+                brand:
+                    "border-transparent bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft/70",
+                /** Acento de marca sólido (úsese con moderación) */
+                "brand-solid":
+                    "border-transparent bg-accent text-accent-foreground hover:bg-accent/90",
+                warning:
+                    "border-transparent bg-warning/15 text-warning hover:bg-warning/25",
+                success:
+                    "border-transparent bg-success/15 text-success hover:bg-success/25",
+                info:
+                    "border-transparent bg-info/15 text-info hover:bg-info/25",
+                error:
+                    "border-transparent bg-error/15 text-error hover:bg-error/25",
+                /** Compatibilidad con código existente */
+                role:
+                    "border-transparent bg-info/15 text-info dark:bg-info/20",
+                orange:
+                    "border-transparent bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft/70",
             },
         },
         defaultVariants: {

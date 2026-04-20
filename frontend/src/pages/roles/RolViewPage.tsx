@@ -22,7 +22,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { DetailPageLayout } from '@/components/detail/DetailPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
-import { LoadingState } from '@/components/states/LoadingState';
+import { DetailPageSkeleton, ListRowsSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,7 +57,7 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
         e.stopPropagation();
         copy(text, label);
       }}
-      className="h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent transition-colors"
+      className="h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted transition-colors"
       title={`Copiar ${label.toLowerCase()}`}
       aria-label={`Copiar ${label.toLowerCase()}`}
     >
@@ -68,9 +68,9 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
 
 function rolBadgeClass(nombre: string | null | undefined): string {
   const r = (nombre ?? '').toUpperCase();
-  if (r.includes('ADMIN')) return 'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30';
-  if (r.includes('OPERA')) return 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30';
-  if (r.includes('SHIPPER')) return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30';
+  if (r.includes('ADMIN')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
+  if (r.includes('OPERA')) return 'bg-info/15 text-info border-info/30';
+  if (r.includes('SHIPPER')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
   return 'bg-muted/40 text-muted-foreground border-border/50';
 }
 
@@ -237,7 +237,7 @@ export default function RolViewPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando rol..." />
+          <DetailPageSkeleton kpis={4} sections={[3]} />
         ) : error ? (
           <ErrorState title="Error al cargar rol" description={error} />
         ) : !row ? (
@@ -245,9 +245,9 @@ export default function RolViewPage() {
         ) : (
           <div className="space-y-6">
             {/* Banner identificativo */}
-            <div className="rounded-xl border border-border bg-gradient-to-r from-primary/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="rounded-xl border border-border bg-gradient-to-r from-accent-soft/60 to-transparent p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-soft">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground">
                   <Shield className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
@@ -273,12 +273,12 @@ export default function RolViewPage() {
               </div>
               <div className="flex items-center gap-2 sm:shrink-0">
                 {totalPermisos > 0 ? (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1">
+                  <Badge variant="success" className="gap-1">
                     <ShieldCheck className="h-3 w-3" />
                     Configurado
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1">
+                  <Badge variant="warning" className="gap-1">
                     <ShieldAlert className="h-3 w-3" />
                     Sin permisos
                   </Badge>
@@ -324,7 +324,7 @@ export default function RolViewPage() {
 
             {/* Aviso si está en uso */}
             {enUso && (
-              <div className="rounded-lg border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-xs text-sky-700 dark:text-sky-400 flex items-start gap-2">
+              <div className="rounded-lg border border-info/30 bg-info/5 px-4 py-3 text-xs text-info flex items-start gap-2">
                 <Users className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">Rol asignado a {totalUsuarios} usuario{totalUsuarios === 1 ? '' : 's'}.</p>
@@ -368,7 +368,7 @@ export default function RolViewPage() {
               title="Permisos asignados"
               description="Agrupados por módulo. Haz clic en un permiso para ver su detalle."
               right={
-                <Badge variant="outline" className="text-[10px] gap-1 bg-violet-500/5 border-violet-500/30 text-violet-700 dark:text-violet-400 tabular-nums">
+                <Badge variant="brand" className="text-[10px] gap-1 tabular-nums">
                   <KeyRound className="h-2.5 w-2.5" />
                   {totalPermisos}
                 </Badge>
@@ -376,7 +376,7 @@ export default function RolViewPage() {
             >
               {totalPermisos === 0 ? (
                 <div className="text-center py-8">
-                  <ShieldAlert className="h-10 w-10 mx-auto mb-3 text-amber-500/60" />
+                  <ShieldAlert className="h-10 w-10 mx-auto mb-3 text-warning/60" />
                   <p className="text-sm font-medium">Sin permisos asignados</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Este rol no tiene permisos. Los usuarios no podrán realizar acciones del sistema.
@@ -440,14 +440,14 @@ export default function RolViewPage() {
               iconColor="amber"
               title="Usuarios con este rol"
               right={
-                <Badge variant="outline" className="text-[10px] gap-1 bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30 tabular-nums">
+                <Badge variant="info" className="text-[10px] gap-1 tabular-nums">
                   <Users className="h-2.5 w-2.5" />
                   {totalUsuarios}
                 </Badge>
               }
             >
               {loadingUsers ? (
-                <p className="text-sm text-muted-foreground">Cargando usuarios…</p>
+                <ListRowsSkeleton rows={4} columns={2} />
               ) : roleUsers.length === 0 ? (
                 <div className="text-center py-6 text-sm text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -463,7 +463,7 @@ export default function RolViewPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/usuarios/${u.id}`)}
-                        className="w-full flex items-center gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2 hover:border-primary/30 hover:bg-accent/30 transition-colors text-left"
+                        className="w-full flex items-center gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2 hover:border-accent/30 hover:bg-accent-soft/40 transition-colors ease-claude text-left"
                       >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
                           {getInitials(u.username || u.email || '?')}
@@ -472,7 +472,7 @@ export default function RolViewPage() {
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="text-sm font-medium truncate">{u.username}</span>
                             {u.activo ? (
-                              <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                              <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
                             ) : (
                               <XCircle className="h-3 w-3 text-muted-foreground shrink-0" />
                             )}
@@ -492,7 +492,7 @@ export default function RolViewPage() {
 
             {/* Aviso si sin permisos y con usuarios */}
             {totalPermisos === 0 && totalUsuarios > 0 && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+              <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-xs text-warning flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">

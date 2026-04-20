@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-import { Toaster } from "sonner"
+import { Toaster } from "@/components/ui/toaster"
 import LandingPage from "./pages/LandingPage"
 import Dashboard from "./pages/Dashboard"
 import Login from "./pages/Login"
@@ -44,7 +44,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-background text-foreground">
-        <Toaster richColors position="top-right" />
+        <Toaster />
         <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />

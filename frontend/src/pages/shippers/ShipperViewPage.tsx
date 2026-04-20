@@ -21,10 +21,11 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { DetailPageLayout } from '@/components/detail/DetailPageLayout';
 import { SectionCard } from '@/components/layout/SectionCard';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
-import { LoadingState } from '@/components/states/LoadingState';
+import { DetailPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { useShipper } from '@/hooks/useShippers';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import { deleteShipper } from '@/services/shippers.service';
@@ -52,7 +53,7 @@ function CopyButton({ text, label, className = '' }: { text: string; label: stri
         e.stopPropagation();
         copyToClipboard(text, label);
       }}
-      className={`h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent transition-colors ${className}`}
+      className={`h-6 w-6 inline-flex items-center justify-center rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted transition-colors ease-claude ${className}`}
       title={`Copiar ${label.toLowerCase()}`}
       aria-label={`Copiar ${label.toLowerCase()}`}
     >
@@ -209,7 +210,7 @@ export default function ShipperViewPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando shipper..." />
+          <DetailPageSkeleton kpis={4} sections={[3, 3]} />
         ) : error ? (
           <ErrorState title="Error al cargar shipper" description={error} />
         ) : !row ? (
@@ -217,9 +218,9 @@ export default function ShipperViewPage() {
         ) : (
           <div className="space-y-6">
             {/* Encabezado con identificadores rápidos */}
-            <div className="rounded-xl border border-border bg-gradient-to-r from-primary/5 to-transparent p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="rounded-xl border border-border bg-gradient-to-r from-accent-soft/60 to-transparent p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-soft">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
                   <Globe className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
@@ -245,14 +246,14 @@ export default function ShipperViewPage() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground sm:shrink-0">
                 {principalTel && (
                   <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-background/40">
-                    <Star className="h-3 w-3 text-amber-500" />
+                    <Star className="h-3 w-3 text-warning" />
                     <span className="font-mono">{principalTel.numero}</span>
                     <CopyButton text={principalTel.numero} label="Teléfono" className="h-4 w-4" />
                   </span>
                 )}
                 {principalDir && (
                   <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-background/40 max-w-[16rem] truncate">
-                    <MapPin className="h-3 w-3 text-orange-500 shrink-0" />
+                    <MapPin className="h-3 w-3 text-accent shrink-0" />
                     <span className="truncate">
                       {[principalDir.canton, principalDir.ciudad, principalDir.pais].filter(Boolean).join(', ') || principalDir.direccion || '—'}
                     </span>
@@ -297,11 +298,11 @@ export default function ShipperViewPage() {
             <SectionCard icon={Info} iconColor="blue" title="Datos generales">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Nombre</span>
+                  <Label variant="caption">Nombre</Label>
                   <p className="text-sm font-medium mt-1">{row.nombre}</p>
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Código interno</span>
+                  <Label variant="caption">Código interno</Label>
                   <div className="flex items-center gap-2 mt-1">
                     {row.codigoInterno ? (
                       <>
@@ -314,7 +315,7 @@ export default function ShipperViewPage() {
                   </div>
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Encargado</span>
+                  <Label variant="caption">Encargado</Label>
                   <p className="text-sm font-medium mt-1">{row.nombreEncargado || '—'}</p>
                 </div>
               </div>
@@ -336,14 +337,14 @@ export default function ShipperViewPage() {
                   {row.telefonos.map((t, idx) => (
                     <div
                       key={t.id ?? idx}
-                      className={`group flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors ${
+                      className={`group flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors ease-claude ${
                         t.esPrincipal
-                          ? 'border-amber-500/40 bg-amber-500/5'
-                          : 'border-border/50 bg-background/40 hover:bg-accent/30'
+                          ? 'border-warning/40 bg-warning/5'
+                          : 'border-border/50 bg-background/40 hover:bg-muted'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        {t.esPrincipal && <Star className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                        {t.esPrincipal && <Star className="h-3.5 w-3.5 text-warning shrink-0" />}
                         <span className="font-mono text-sm truncate">{t.numero}</span>
                         {t.etiqueta && (
                           <Badge variant="secondary" className="text-[10px] font-normal shrink-0">
@@ -353,7 +354,7 @@ export default function ShipperViewPage() {
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {t.esPrincipal && (
-                          <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-700 dark:text-amber-400">
+                          <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
                             Principal
                           </Badge>
                         )}
@@ -398,7 +399,7 @@ export default function ShipperViewPage() {
                     return (
                       <div
                         key={d.id || idx}
-                        className="group rounded-xl border border-border/40 bg-background/40 p-4 hover:border-primary/30 transition-colors"
+                        className="group rounded-xl border border-border/40 bg-background/40 p-4 hover:border-accent/40 transition-colors ease-claude"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
@@ -444,27 +445,27 @@ export default function ShipperViewPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Username</span>
+                      <Label variant="caption">Username</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-sm font-medium">{linkedUser.username}</p>
                         <CopyButton text={linkedUser.username} label="Usuario" />
                       </div>
                     </div>
                     <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Email</span>
+                      <Label variant="caption">Email</Label>
                       <div className="flex items-center gap-2 mt-1 min-w-0">
                         <p className="text-sm font-medium truncate">{linkedUser.email}</p>
                         <CopyButton text={linkedUser.email} label="Email" />
                       </div>
                     </div>
                     <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Estado</span>
+                      <Label variant="caption">Estado</Label>
                       <div className="mt-1">
                         <Badge
                           variant="outline"
                           className={
                             linkedUser.activo
-                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                              ? 'bg-success/15 text-success border-success/30'
                               : 'bg-muted/40 text-muted-foreground border-border/50'
                           }
                         >

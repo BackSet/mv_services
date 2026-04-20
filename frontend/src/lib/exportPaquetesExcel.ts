@@ -1,5 +1,11 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type { Paquete } from '@/services/paquetes.service';
+import {
+  BRAND_HEX,
+  brandToARGB,
+  formatPrintDate,
+  PRINT_BRAND_TEXT,
+} from '@/lib/print/brandTokens';
 
 // =============================================================================
 // Helpers
@@ -11,6 +17,17 @@ function parseDate(s: string | null | undefined): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // =============================================================================
 // Definición de columnas
 // =============================================================================
@@ -18,24 +35,29 @@ function parseDate(s: string | null | undefined): Date | null {
 type ColType = 'text' | 'number' | 'date';
 
 type ColDef = {
-  key: keyof Paquete | 'shipperNombre' | 'consolidadoLabel' | 'posicion';
+  key:
+    | keyof Paquete
+    | 'shipperNombre'
+    | 'consolidadoLabel'
+    | 'posicion';
   label: string;
   width: number;
   type: ColType;
-  format?: string; // formato numérico de Excel (z)
+  format?: string;
+  align?: 'left' | 'right' | 'center';
 };
 
 const COLUMNS: ColDef[] = [
-  { key: 'numeroGuia',       label: 'Guía',          width: 22, type: 'text' },
-  { key: 'destinatario',     label: 'Destinatario',  width: 26, type: 'text' },
-  { key: 'ref',              label: 'Ref',           width: 16, type: 'text' },
-  { key: 'contenido',        label: 'Contenido',     width: 30, type: 'text' },
-  { key: 'pesoLbs',          label: 'Peso (lbs)',    width: 12, type: 'number', format: '#,##0.00' },
-  { key: 'pesoKgs',          label: 'Peso (kgs)',    width: 12, type: 'number', format: '#,##0.00' },
-  { key: 'shipperNombre',    label: 'Shipper',       width: 22, type: 'text' },
-  { key: 'consolidadoLabel', label: 'Consolidado',   width: 18, type: 'text' },
-  { key: 'posicion',         label: 'Pos. cons.',    width: 10, type: 'number', format: '0' },
-  { key: 'fechaRegistro',    label: 'Fecha registro', width: 20, type: 'date', format: 'dd/mm/yyyy hh:mm' },
+  { key: 'numeroGuia',       label: 'Guía',           width: 22, type: 'text' },
+  { key: 'destinatario',     label: 'Destinatario',   width: 28, type: 'text' },
+  { key: 'ref',              label: 'Ref',            width: 16, type: 'text' },
+  { key: 'contenido',        label: 'Contenido',      width: 32, type: 'text' },
+  { key: 'pesoLbs',          label: 'Peso (lbs)',     width: 12, type: 'number', format: '#,##0.00', align: 'right' },
+  { key: 'pesoKgs',          label: 'Peso (kgs)',     width: 12, type: 'number', format: '#,##0.00', align: 'right' },
+  { key: 'shipperNombre',    label: 'Shipper',        width: 22, type: 'text' },
+  { key: 'consolidadoLabel', label: 'Consolidado',    width: 18, type: 'text' },
+  { key: 'posicion',         label: 'Pos. cons.',     width: 10, type: 'number', format: '0', align: 'right' },
+  { key: 'fechaRegistro',    label: 'Fecha registro', width: 20, type: 'date',   format: 'dd/mm/yyyy hh:mm' },
 ];
 
 function getCellValue(p: Paquete, col: ColDef): string | number | Date | null {
@@ -77,186 +99,383 @@ function calcResumen(paquetes: Paquete[]) {
     sinShipper: paquetes.length - conShipper,
     consolidados,
     sinConsolidar: paquetes.length - consolidados,
+    pctShipper: paquetes.length > 0 ? Math.round((conShipper / paquetes.length) * 100) : 0,
+    pctConsolidado: paquetes.length > 0 ? Math.round((consolidados / paquetes.length) * 100) : 0,
   };
 }
+
+// =============================================================================
+// Helpers de estilo (paleta MV)
+// =============================================================================
+
+const FONT_NAME = 'Calibri';
+
+const FILL_BLACK = {
+  type: 'pattern' as const,
+  pattern: 'solid' as const,
+  fgColor: { argb: brandToARGB('black') },
+};
+
+const FILL_ORANGE = {
+  type: 'pattern' as const,
+  pattern: 'solid' as const,
+  fgColor: { argb: brandToARGB('orange') },
+};
+
+const FILL_ORANGE_FADED = {
+  type: 'pattern' as const,
+  pattern: 'solid' as const,
+  fgColor: { argb: brandToARGB('orangeFaded') },
+};
+
+const FILL_GRAY_LIGHT = {
+  type: 'pattern' as const,
+  pattern: 'solid' as const,
+  fgColor: { argb: brandToARGB('grayLight') },
+};
+
+const FILL_ZEBRA = {
+  type: 'pattern' as const,
+  pattern: 'solid' as const,
+  fgColor: { argb: brandToARGB('zebra') },
+};
+
+const BORDER_GRAY: ExcelJS.Borders = {
+  top:    { style: 'thin', color: { argb: brandToARGB('grayBorder') } },
+  left:   { style: 'thin', color: { argb: brandToARGB('grayBorder') } },
+  bottom: { style: 'thin', color: { argb: brandToARGB('grayBorder') } },
+  right:  { style: 'thin', color: { argb: brandToARGB('grayBorder') } },
+  diagonal: { style: 'thin', color: { argb: brandToARGB('grayBorder') } },
+};
 
 // =============================================================================
 // Construcción de la hoja "Paquetes"
 // =============================================================================
 
-function buildPaquetesSheet(paquetes: Paquete[]): XLSX.WorkSheet {
-  const TITLE_ROW = 1;     // A1: título
-  const META_ROW = 2;      // A2: meta
-  const HEADER_ROW = 4;    // fila 4 (1-based) = índice 3
-  const DATA_START_ROW = 5;
-  const totalCols = COLUMNS.length;
-
-  const ws: XLSX.WorkSheet = {};
-
-  // --- Título y meta ---
-  const titulo = 'MV Services — Listado de paquetes';
-  const meta = `Generado: ${new Date().toLocaleString('es', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })}   •   Total registros: ${paquetes.length.toLocaleString('es')}`;
-
-  ws[XLSX.utils.encode_cell({ r: TITLE_ROW - 1, c: 0 })] = { t: 's', v: titulo };
-  ws[XLSX.utils.encode_cell({ r: META_ROW - 1, c: 0 })]  = { t: 's', v: meta };
-
-  // --- Cabeceras ---
-  for (let c = 0; c < totalCols; c++) {
-    ws[XLSX.utils.encode_cell({ r: HEADER_ROW - 1, c })] = { t: 's', v: COLUMNS[c].label };
-  }
-
-  // --- Datos ---
-  paquetes.forEach((p, i) => {
-    for (let c = 0; c < totalCols; c++) {
-      const col = COLUMNS[c];
-      const val = getCellValue(p, col);
-      const ref = XLSX.utils.encode_cell({ r: DATA_START_ROW - 1 + i, c });
-      if (val == null || val === '') {
-        ws[ref] = { t: 's', v: '' };
-        continue;
-      }
-      if (col.type === 'number' && typeof val === 'number') {
-        ws[ref] = { t: 'n', v: val, z: col.format };
-      } else if (col.type === 'date' && val instanceof Date) {
-        ws[ref] = { t: 'd', v: val, z: col.format };
-      } else {
-        ws[ref] = { t: 's', v: String(val) };
-      }
-    }
+function buildPaquetesSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
+  const ws = wb.addWorksheet('Paquetes', {
+    views: [{ state: 'frozen', xSplit: 1, ySplit: 4, activeCell: 'B5' }],
+    properties: { defaultRowHeight: 16 },
   });
 
-  // --- Fila de totales (al final de los datos) ---
-  const totalsRow = DATA_START_ROW - 1 + paquetes.length;
-  ws[XLSX.utils.encode_cell({ r: totalsRow, c: 0 })] = { t: 's', v: 'TOTALES' };
+  const totalCols = COLUMNS.length;
+  const lastColLetter = ws.getColumn(totalCols).letter;
 
-  // Sumas para columnas numéricas vía fórmula SUM
-  for (let c = 0; c < totalCols; c++) {
-    const col = COLUMNS[c];
-    if (col.type !== 'number') continue;
-    const colLetter = XLSX.utils.encode_col(c);
-    const firstRow = DATA_START_ROW;             // 1-based
-    const lastRow = DATA_START_ROW + paquetes.length - 1;
-    const ref = XLSX.utils.encode_cell({ r: totalsRow, c });
-    ws[ref] = {
-      t: 'n',
-      f: `SUM(${colLetter}${firstRow}:${colLetter}${lastRow})`,
-      z: col.format,
+  ws.columns = COLUMNS.map((c) => ({ width: c.width }));
+
+  // ---------------------------------------------------------------------------
+  // Fila 1 — Título principal con marca
+  // ---------------------------------------------------------------------------
+  ws.mergeCells(1, 1, 1, totalCols);
+  const titleCell = ws.getCell(1, 1);
+  titleCell.value = {
+    richText: [
+      { text: PRINT_BRAND_TEXT.wordmarkLeft, font: { name: FONT_NAME, size: 16, bold: true, color: { argb: brandToARGB('white') } } },
+      { text: PRINT_BRAND_TEXT.wordmarkRight, font: { name: FONT_NAME, size: 16, bold: true, color: { argb: brandToARGB('orange') } } },
+      { text: '   Listado de paquetes', font: { name: FONT_NAME, size: 13, color: { argb: brandToARGB('grayBorder') } } },
+    ],
+  };
+  titleCell.fill = FILL_BLACK;
+  titleCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  ws.getRow(1).height = 30;
+
+  // ---------------------------------------------------------------------------
+  // Fila 2 — Banda naranja delgada (acento de marca)
+  // ---------------------------------------------------------------------------
+  ws.mergeCells(2, 1, 2, totalCols);
+  const accentCell = ws.getCell(2, 1);
+  accentCell.value = '';
+  accentCell.fill = FILL_ORANGE;
+  ws.getRow(2).height = 4;
+
+  // ---------------------------------------------------------------------------
+  // Fila 3 — Meta (fecha de generación + totales)
+  // ---------------------------------------------------------------------------
+  ws.mergeCells(3, 1, 3, totalCols);
+  const metaCell = ws.getCell(3, 1);
+  metaCell.value = `Generado: ${formatPrintDate(new Date())}    •    Total registros: ${paquetes.length.toLocaleString('es')}`;
+  metaCell.fill = FILL_GRAY_LIGHT;
+  metaCell.font = { name: FONT_NAME, size: 9, color: { argb: brandToARGB('grayMid') } };
+  metaCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  ws.getRow(3).height = 18;
+
+  // ---------------------------------------------------------------------------
+  // Fila 4 — Cabeceras de tabla (negro con texto blanco)
+  // ---------------------------------------------------------------------------
+  const headerRow = ws.getRow(4);
+  COLUMNS.forEach((col, i) => {
+    const cell = headerRow.getCell(i + 1);
+    cell.value = col.label;
+    cell.fill = FILL_BLACK;
+    cell.font = { name: FONT_NAME, size: 10, bold: true, color: { argb: brandToARGB('white') } };
+    cell.alignment = {
+      vertical: 'middle',
+      horizontal: col.align ?? 'left',
+      indent: col.align === 'right' ? 0 : 1,
+    };
+    cell.border = {
+      bottom: { style: 'medium', color: { argb: brandToARGB('orange') } },
+    };
+  });
+  headerRow.height = 22;
+
+  // ---------------------------------------------------------------------------
+  // Filas 5..N — Datos (con zebra)
+  // ---------------------------------------------------------------------------
+  const dataStartRow = 5;
+  paquetes.forEach((p, i) => {
+    const row = ws.getRow(dataStartRow + i);
+    const isZebra = i % 2 === 1;
+
+    COLUMNS.forEach((col, c) => {
+      const cell = row.getCell(c + 1);
+      const val = getCellValue(p, col);
+
+      if (val == null || val === '') {
+        cell.value = '—';
+        cell.font = { name: FONT_NAME, size: 10, color: { argb: brandToARGB('grayMid') }, italic: true };
+      } else if (col.type === 'number' && typeof val === 'number') {
+        cell.value = val;
+        cell.numFmt = col.format ?? '#,##0.00';
+        cell.font = { name: FONT_NAME, size: 10, color: { argb: brandToARGB('grayDark') } };
+      } else if (col.type === 'date' && val instanceof Date) {
+        cell.value = val;
+        cell.numFmt = col.format ?? 'dd/mm/yyyy';
+        cell.font = { name: FONT_NAME, size: 10, color: { argb: brandToARGB('grayDark') } };
+      } else {
+        cell.value = String(val);
+        cell.font = { name: FONT_NAME, size: 10, color: { argb: brandToARGB('grayDark') } };
+      }
+
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: col.align ?? 'left',
+        wrapText: col.type === 'text' && col.key !== 'numeroGuia' && col.key !== 'ref',
+        indent: col.align === 'right' ? 0 : 1,
+      };
+
+      if (isZebra) cell.fill = FILL_ZEBRA;
+      cell.border = BORDER_GRAY;
+    });
+
+    row.height = 18;
+  });
+
+  // ---------------------------------------------------------------------------
+  // Fila final — Totales con fórmulas
+  // ---------------------------------------------------------------------------
+  if (paquetes.length > 0) {
+    const totalsRow = ws.getRow(dataStartRow + paquetes.length);
+    const firstDataRow = dataStartRow;
+    const lastDataRow = dataStartRow + paquetes.length - 1;
+
+    COLUMNS.forEach((col, c) => {
+      const cell = totalsRow.getCell(c + 1);
+      const colLetter = ws.getColumn(c + 1).letter;
+
+      if (c === 0) {
+        cell.value = 'TOTALES';
+      } else if (col.type === 'number') {
+        cell.value = { formula: `SUM(${colLetter}${firstDataRow}:${colLetter}${lastDataRow})` };
+        cell.numFmt = col.format ?? '#,##0.00';
+      } else {
+        cell.value = '';
+      }
+
+      cell.fill = FILL_ORANGE_FADED;
+      cell.font = {
+        name: FONT_NAME,
+        size: 10,
+        bold: true,
+        color: { argb: brandToARGB('black') },
+      };
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: col.align ?? 'left',
+        indent: col.align === 'right' ? 0 : 1,
+      };
+      cell.border = {
+        ...BORDER_GRAY,
+        top: { style: 'medium', color: { argb: brandToARGB('orange') } },
+      };
+    });
+
+    totalsRow.height = 22;
+  }
+
+  // ---------------------------------------------------------------------------
+  // AutoFilter sobre cabeceras y datos (excluye totales)
+  // ---------------------------------------------------------------------------
+  if (paquetes.length > 0) {
+    ws.autoFilter = {
+      from: { row: 4, column: 1 },
+      to: { row: dataStartRow + paquetes.length - 1, column: totalCols },
     };
   }
 
-  // --- Rango y meta de hoja ---
-  const lastRow = totalsRow;
-  const lastCol = totalCols - 1;
-  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: lastCol } });
-
-  // Anchos
-  ws['!cols'] = COLUMNS.map((c) => ({ wch: c.width }));
-
-  // Alturas (título y meta más altas)
-  ws['!rows'] = [
-    { hpt: 24 }, // título
-    { hpt: 16 }, // meta
-    { hpt: 6 },  // separador
-    { hpt: 20 }, // header
-  ];
-
-  // Merges: título y meta a lo ancho de la tabla
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
-  ];
-
-  // Freeze: cabeceras y primera columna
-  ws['!freeze'] = { xSplit: 1, ySplit: HEADER_ROW } as unknown as XLSX.WorkSheet['!freeze'];
-  // Algunos lectores usan '!views' para freeze panes
-  (ws as unknown as { '!views': unknown[] })['!views'] = [
-    { state: 'frozen', xSplit: 1, ySplit: HEADER_ROW, topLeftCell: 'B5', activePane: 'bottomRight' },
-  ];
-
-  // AutoFilter sobre cabeceras + datos (excluye fila de totales)
-  ws['!autofilter'] = {
-    ref: XLSX.utils.encode_range({
-      s: { r: HEADER_ROW - 1, c: 0 },
-      e: { r: DATA_START_ROW - 1 + paquetes.length - 1, c: lastCol },
-    }),
+  // ---------------------------------------------------------------------------
+  // Imprimibilidad: paisaje, ajuste a una página de ancho, área de impresión
+  // ---------------------------------------------------------------------------
+  ws.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+    paperSize: 9, // A4
+    horizontalCentered: true,
+    printArea: `A1:${lastColLetter}${dataStartRow + paquetes.length}`,
   };
+  ws.pageSetup.printTitlesRow = '1:4';
 
-  return ws;
+  ws.headerFooter = {
+    oddHeader: '',
+    oddFooter: `&L&"${FONT_NAME}"&8&K000000MV &K${BRAND_HEX.orange.slice(1)}SERVICES&K808080  •  Listado de paquetes&R&"${FONT_NAME}"&8&K555555Página &P de &N`,
+  };
 }
 
 // =============================================================================
 // Hoja "Resumen"
 // =============================================================================
 
-function buildResumenSheet(paquetes: Paquete[]): XLSX.WorkSheet {
+function buildResumenSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
   const r = calcResumen(paquetes);
-  const fechaGen = new Date().toLocaleString('es', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  const ws = wb.addWorksheet('Resumen', {
+    views: [{ showGridLines: false }],
   });
 
-  const aoa: (string | number)[][] = [
-    ['MV Services — Resumen de exportación'],
-    [`Generado: ${fechaGen}`],
-    [],
-    ['Métrica', 'Valor'],
-    ['Total paquetes', r.total],
-    ['Peso total (lbs)', Number(r.totalLbs.toFixed(2))],
-    ['Peso total (kgs)', Number(r.totalKgs.toFixed(2))],
-    ['Con shipper', r.conShipper],
-    ['Sin shipper', r.sinShipper],
-    ['Consolidados', r.consolidados],
-    ['Sin consolidar', r.sinConsolidar],
+  ws.columns = [
+    { width: 6 },
+    { width: 32 },
+    { width: 22 },
+    { width: 22 },
+    { width: 6 },
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  ws['!cols'] = [{ wch: 28 }, { wch: 18 }];
-  ws['!rows'] = [{ hpt: 24 }, { hpt: 16 }, { hpt: 6 }, { hpt: 20 }];
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
-  ];
-
-  // Aplicar formatos numéricos a las celdas de valores
-  const numericFormats: Record<number, string> = {
-    4: '#,##0',          // total paquetes
-    5: '#,##0.00',       // lbs
-    6: '#,##0.00',       // kgs
-    7: '#,##0',          // con shipper
-    8: '#,##0',          // sin shipper
-    9: '#,##0',          // consolidados
-    10: '#,##0',         // sin consolidar
+  // --- Fila 1: título ---
+  ws.mergeCells(1, 2, 1, 4);
+  const titleCell = ws.getCell(1, 2);
+  titleCell.value = {
+    richText: [
+      { text: PRINT_BRAND_TEXT.wordmarkLeft, font: { name: FONT_NAME, size: 18, bold: true, color: { argb: brandToARGB('black') } } },
+      { text: PRINT_BRAND_TEXT.wordmarkRight, font: { name: FONT_NAME, size: 18, bold: true, color: { argb: brandToARGB('orange') } } },
+      { text: '   Resumen de exportación', font: { name: FONT_NAME, size: 14, color: { argb: brandToARGB('grayDark') } } },
+    ],
   };
-  for (const [rowStr, fmt] of Object.entries(numericFormats)) {
-    const ref = XLSX.utils.encode_cell({ r: Number(rowStr), c: 1 });
-    if (ws[ref]) ws[ref].z = fmt;
+  titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
+  ws.getRow(1).height = 30;
+
+  // --- Fila 2: banda naranja ---
+  ws.mergeCells(2, 2, 2, 4);
+  const accentCell = ws.getCell(2, 2);
+  accentCell.value = '';
+  accentCell.fill = FILL_ORANGE;
+  ws.getRow(2).height = 3;
+
+  // --- Fila 3: meta ---
+  ws.mergeCells(3, 2, 3, 4);
+  const metaCell = ws.getCell(3, 2);
+  metaCell.value = `Generado: ${formatPrintDate(new Date())}    •    ${PRINT_BRAND_TEXT.systemSubtitle}`;
+  metaCell.font = { name: FONT_NAME, size: 9, color: { argb: brandToARGB('grayMid') } };
+  metaCell.alignment = { vertical: 'middle', horizontal: 'left' };
+  ws.getRow(3).height = 18;
+
+  // --- Filas 5+: Tarjetas tipo KPI (Métrica | Valor | Porcentaje) ---
+  type KPI = { label: string; value: number | string; pct?: string; format?: string; accent?: 'orange' | 'success' | 'warning' | 'grayDark' };
+  const kpis: KPI[] = [
+    { label: 'TOTAL PAQUETES',     value: r.total,                                    format: '#,##0',     accent: 'orange' },
+    { label: 'PESO TOTAL (LBS)',   value: Number(r.totalLbs.toFixed(2)),              format: '#,##0.00',  accent: 'grayDark' },
+    { label: 'PESO TOTAL (KGS)',   value: Number(r.totalKgs.toFixed(2)),              format: '#,##0.00',  accent: 'grayDark' },
+    { label: 'CON SHIPPER',        value: r.conShipper,                               format: '#,##0',     accent: r.pctShipper === 100 ? 'success' : 'warning', pct: `${r.pctShipper}%` },
+    { label: 'SIN SHIPPER',        value: r.sinShipper,                               format: '#,##0',     accent: r.sinShipper === 0 ? 'success' : 'warning' },
+    { label: 'CONSOLIDADOS',       value: r.consolidados,                             format: '#,##0',     accent: r.pctConsolidado === 100 ? 'success' : 'warning', pct: `${r.pctConsolidado}%` },
+    { label: 'SIN CONSOLIDAR',     value: r.sinConsolidar,                            format: '#,##0',     accent: r.sinConsolidar === 0 ? 'success' : 'warning' },
+  ];
+
+  let row = 5;
+  for (const kpi of kpis) {
+    // columna 2: etiqueta
+    const labelCell = ws.getCell(row, 2);
+    labelCell.value = kpi.label;
+    labelCell.font = { name: FONT_NAME, size: 9, bold: true, color: { argb: brandToARGB('grayMid') } };
+    labelCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    labelCell.fill = FILL_GRAY_LIGHT;
+    labelCell.border = {
+      left: { style: 'medium', color: { argb: brandToARGB(kpi.accent ?? 'orange') } },
+      bottom: { style: 'thin', color: { argb: brandToARGB('grayBorder') } },
+    };
+
+    // columna 3: valor
+    const valueCell = ws.getCell(row, 3);
+    if (typeof kpi.value === 'number') {
+      valueCell.value = kpi.value;
+      valueCell.numFmt = kpi.format ?? '#,##0';
+    } else {
+      valueCell.value = kpi.value;
+    }
+    valueCell.font = { name: FONT_NAME, size: 14, bold: true, color: { argb: brandToARGB('grayDark') } };
+    valueCell.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
+    valueCell.fill = FILL_GRAY_LIGHT;
+    valueCell.border = { bottom: { style: 'thin', color: { argb: brandToARGB('grayBorder') } } };
+
+    // columna 4: porcentaje (chip)
+    const pctCell = ws.getCell(row, 4);
+    if (kpi.pct) {
+      pctCell.value = kpi.pct;
+      pctCell.font = { name: FONT_NAME, size: 10, bold: true, color: { argb: brandToARGB('white') } };
+      pctCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: brandToARGB(kpi.accent ?? 'orange') },
+      };
+      pctCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    } else {
+      pctCell.value = '';
+      pctCell.fill = FILL_GRAY_LIGHT;
+    }
+    pctCell.border = { bottom: { style: 'thin', color: { argb: brandToARGB('grayBorder') } } };
+
+    ws.getRow(row).height = 26;
+    row++;
   }
 
-  return ws;
+  ws.pageSetup = {
+    orientation: 'portrait',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.2, footer: 0.2 },
+    paperSize: 9,
+    horizontalCentered: true,
+  };
 }
 
 // =============================================================================
 // API pública
 // =============================================================================
 
-export function exportPaquetesExcel(paquetes: Paquete[], filename?: string): void {
+export async function exportPaquetesExcel(
+  paquetes: Paquete[],
+  filename?: string,
+): Promise<void> {
   if (!paquetes.length) return;
 
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'MV Services';
+  wb.lastModifiedBy = 'MV Services';
+  wb.title = 'Listado de paquetes';
+  wb.subject = 'Reporte de paquetes';
+  wb.company = 'MV Services';
+  wb.created = new Date();
+  wb.modified = new Date();
 
-  // Propiedades del libro
-  wb.Props = {
-    Title: 'Listado de paquetes',
-    Subject: 'Reporte de paquetes',
-    Author: 'MV Services',
-    CreatedDate: new Date(),
-  };
+  buildResumenSheet(wb, paquetes);
+  buildPaquetesSheet(wb, paquetes);
 
-  XLSX.utils.book_append_sheet(wb, buildResumenSheet(paquetes), 'Resumen');
-  XLSX.utils.book_append_sheet(wb, buildPaquetesSheet(paquetes), 'Paquetes');
-
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
   const name = filename ?? `paquetes_${new Date().toISOString().slice(0, 10)}.xlsx`;
-  XLSX.writeFile(wb, name, { cellDates: true, compression: true });
+  downloadBlob(blob, name);
 }

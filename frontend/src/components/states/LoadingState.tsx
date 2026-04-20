@@ -29,15 +29,19 @@ export function LoadingState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/5 p-8 text-center',
-        className
+        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card/40 px-10 py-16 text-center',
+        className,
       )}
     >
-      <div className="h-11 w-11 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground">
+      <div className="h-12 w-12 rounded-2xl bg-accent-soft flex items-center justify-center text-accent">
         {icon ?? <Loader2 className="h-5 w-5 animate-spin" />}
       </div>
-      <div className="mt-3 text-sm font-medium text-foreground">{label}</div>
-      {description ? <div className="mt-1 text-xs text-muted-foreground max-w-sm">{description}</div> : null}
+      <div className="mt-4 font-serif text-lg tracking-tight text-foreground">{label}</div>
+      {description ? (
+        <div className="mt-1.5 text-sm text-muted-foreground max-w-md leading-relaxed">
+          {description}
+        </div>
+      ) : null}
     </div>
   )
 }

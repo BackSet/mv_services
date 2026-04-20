@@ -151,7 +151,7 @@ export function PermisosSelector({
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-accent flex items-center justify-center"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center"
               aria-label="Limpiar búsqueda"
             >
               <X className="h-3 w-3" />
@@ -255,7 +255,7 @@ export function PermisosSelector({
                   <button
                     type="button"
                     onClick={() => toggleCollapse(g.moduloKey)}
-                    className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-accent text-muted-foreground transition-colors"
+                    className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground transition-colors"
                     aria-label={isCollapsed ? 'Expandir' : 'Contraer'}
                   >
                     {isCollapsed ? (
@@ -305,8 +305,8 @@ export function PermisosSelector({
                             disabled={presetReadOnly}
                             className={cn(
                               'w-full flex items-start gap-3 px-3 py-2 text-left transition-colors',
-                              'hover:bg-accent/30 disabled:cursor-default',
-                              checked && 'bg-primary/5',
+                              'hover:bg-muted/60 disabled:cursor-default',
+                              checked && 'bg-accent-soft/50',
                             )}
                           >
                             {checked ? (

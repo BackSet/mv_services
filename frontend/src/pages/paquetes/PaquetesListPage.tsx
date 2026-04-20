@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMe } from '@/hooks/useMe';
 import { listShippers, type Shipper } from '@/services/shippers.service';
 import { ShipperCombobox } from '@/components/shipper/ShipperCombobox';
-import { Package, Plus, Eye, Pencil, Trash2, Download, RefreshCcw, FilterX, CalendarDays, Boxes, FileSpreadsheet, FileText, ListChecks, CheckCircle2, AlertCircle, Copy, Rows3, Rows2, Weight, UserRound, Layers, ArrowUp } from 'lucide-react';
+import { Package, Plus, Eye, Pencil, Trash2, Download, RefreshCcw, FilterX, CalendarDays, Boxes, FileSpreadsheet, FileText, ListChecks, CheckCircle2, AlertCircle, Copy, Rows3, Rows2, Weight, UserRound, Layers, ArrowUp, Printer, FilePlus2 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
 import NotionTable from '@/components/notion/NotionTable';
@@ -11,7 +11,7 @@ import type { NotionTableAction, SortState } from '@/components/notion/NotionTab
 import EmptyState from '@/components/notion/EmptyState';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { ListPagination } from '@/components/list/ListPagination';
-import { LoadingState } from '@/components/states/LoadingState';
+import { TableSkeleton, PaginationSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,12 +24,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { usePaquetesList } from '@/hooks/usePaquetes';
 import { deletePaquete } from '@/services/paquetes.service';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import type { Paquete } from '@/services/paquetes.service';
 import { exportPaquetesExcel } from '@/lib/exportPaquetesExcel';
 import { exportPaquetesPdf } from '@/lib/exportPaquetesPdf';
+import { printPackageLabels } from '@/lib/printLabels';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { KpiCard, Kbd } from '@/components/layout/KpiCard';
@@ -81,7 +83,9 @@ function matchesSearch(p: Paquete, q: string): boolean {
     p.destinatario?.toLowerCase().includes(q) ||
     p.ref?.toLowerCase().includes(q) ||
     p.contenido?.toLowerCase().includes(q) ||
-    p.shipper?.nombre?.toLowerCase().includes(q),
+    p.shipper?.nombre?.toLowerCase().includes(q) ||
+    p.consolidado?.numeroGuia?.toLowerCase().includes(q) ||
+    (p.consolidado?.id != null && String(p.consolidado.id).includes(q)),
   );
 }
 
@@ -220,9 +224,67 @@ export default function PaquetesListPage() {
     }
   };
 
+  const imprimirEtiqueta = (r: Paquete) => {
+    void printPackageLabels(
+      [
+        {
+          numeroGuia: r.numeroGuia,
+          shipperNombre: r.shipper?.nombre ?? null,
+          shipperEncargado: r.shipper?.nombreEncargado ?? null,
+          destinatarioNombre: r.destinatario ?? null,
+          ref: r.ref ?? null,
+          pesoLbs: r.pesoLbs ?? null,
+          pesoKgs: r.pesoKgs ?? null,
+          contenido: r.contenido ?? null,
+          consolidadoGuia: r.consolidado?.numeroGuia ?? (r.consolidado?.id ? `#${r.consolidado.id}` : null),
+          posicionEnConsolidado: r.posicionEnConsolidado ?? null,
+        },
+      ],
+      { title: `Etiqueta · ${r.numeroGuia}`, pageSize: '4x6', mode: 'thermal', withQR: true },
+    );
+  };
+
+  const duplicarPaquete = (r: Paquete) => {
+    const params = new URLSearchParams();
+    if (r.destinatario) params.set('destinatario', r.destinatario);
+    if (r.contenido) params.set('contenido', r.contenido);
+    if (r.shipper?.id) params.set('shipperId', String(r.shipper.id));
+    navigate(`/paquetes/new${params.toString() ? `?${params.toString()}` : ''}`);
+  };
+
+  const imprimirEtiquetasSeleccion = () => {
+    if (selectedPaquetes.length === 0) return;
+    const consolidadoIds = new Set(selectedPaquetes.map((p) => p.consolidado?.id ?? null));
+    const compartenConsolidado = consolidadoIds.size === 1 && !consolidadoIds.has(null);
+    const totalCompartido = compartenConsolidado ? selectedPaquetes.length : null;
+
+    const labels = selectedPaquetes.map((r) => ({
+      numeroGuia: r.numeroGuia,
+      shipperNombre: r.shipper?.nombre ?? null,
+      shipperEncargado: r.shipper?.nombreEncargado ?? null,
+      destinatarioNombre: r.destinatario ?? null,
+      ref: r.ref ?? null,
+      pesoLbs: r.pesoLbs ?? null,
+      pesoKgs: r.pesoKgs ?? null,
+      contenido: r.contenido ?? null,
+      consolidadoGuia: r.consolidado?.numeroGuia ?? (r.consolidado?.id ? `#${r.consolidado.id}` : null),
+      posicionEnConsolidado: r.posicionEnConsolidado ?? null,
+      totalEnConsolidado: totalCompartido,
+    }));
+
+    void printPackageLabels(labels, {
+      title: `Etiquetas · ${selectedPaquetes.length} paquete${selectedPaquetes.length !== 1 ? 's' : ''}`,
+      pageSize: '4x6',
+      mode: 'thermal',
+      withQR: true,
+    });
+  };
+
   const rowActions = (r: Paquete): NotionTableAction<Paquete>[] => [
     { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/paquetes/${r.id}`) },
     { label: 'Editar', icon: Pencil, onClick: () => navigate(`/paquetes/${r.id}/edit`) },
+    { label: 'Imprimir etiqueta', icon: Printer, onClick: () => imprimirEtiqueta(r) },
+    { label: 'Duplicar', icon: FilePlus2, onClick: () => duplicarPaquete(r) },
     { label: 'Eliminar', icon: Trash2, onClick: () => setDeleteId(r.id), destructive: true },
   ];
 
@@ -307,7 +369,7 @@ export default function PaquetesListPage() {
     setExportQue('fecha');
   };
 
-  const handleExportarDesdeDialogo = () => {
+  const handleExportarDesdeDialogo = async () => {
     if (exportQue === 'fecha' && !exportFechaDesde && !exportFechaHasta) {
       toast.info('Elija al menos una fecha (Desde y/o Hasta).');
       return;
@@ -319,13 +381,21 @@ export default function PaquetesListPage() {
     const baseName = (exportFilename.trim() || exportFilenameSugerido).replace(/\.(xlsx|pdf)$/i, '');
     const ext = exportFormato === 'excel' ? 'xlsx' : 'pdf';
     const fullName = `${baseName}.${ext}`;
-    if (exportFormato === 'excel') exportPaquetesExcel(exportSourceList, fullName);
-    else exportPaquetesPdf(exportSourceList, fullName);
-    toast.success(`Se exportaron ${exportSourceList.length} paquete${exportSourceList.length !== 1 ? 's' : ''} (${exportFormato.toUpperCase()}).`);
-    setExportDialogOpen(false);
-    setExportQue('lista');
-    setExportFechaDesde('');
-    setExportFechaHasta('');
+    try {
+      if (exportFormato === 'excel') {
+        await exportPaquetesExcel(exportSourceList, fullName);
+      } else {
+        exportPaquetesPdf(exportSourceList, fullName);
+      }
+      toast.success(`Se exportaron ${exportSourceList.length} paquete${exportSourceList.length !== 1 ? 's' : ''} (${exportFormato.toUpperCase()}).`);
+      setExportDialogOpen(false);
+      setExportQue('lista');
+      setExportFechaDesde('');
+      setExportFechaHasta('');
+    } catch (err) {
+      toast.error('No se pudo generar el archivo. Inténtalo de nuevo.');
+      console.error('Error al exportar paquetes:', err);
+    }
   };
 
   const puedeExportar = exportCount > 0 && (exportQue !== 'fecha' || Boolean(exportFechaDesde || exportFechaHasta));
@@ -423,7 +493,7 @@ export default function PaquetesListPage() {
             <div className="px-6 py-4 space-y-5 max-h-[70vh] overflow-y-auto">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Alcance</p>
+                  <Label variant="caption">Alcance</Label>
                 </div>
                 <div className="grid gap-2">
                   {[
@@ -455,14 +525,14 @@ export default function PaquetesListPage() {
                         key={opt.id}
                         type="button"
                         onClick={() => setExportQue(opt.id)}
-                        className={`group relative flex items-start gap-3 rounded-xl border p-3 text-left text-sm transition-all ${
+                        className={`group relative flex items-start gap-3 rounded-xl border p-3 text-left text-sm transition-all ease-claude ${
                           active
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                            ? 'border-accent bg-accent-soft/60 shadow-soft'
+                            : 'border-border hover:border-accent/40 hover:bg-muted/40'
                         }`}
                       >
                         <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                          active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                          active ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'
                         }`}>
                           {opt.icon}
                         </span>
@@ -470,7 +540,7 @@ export default function PaquetesListPage() {
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-medium flex items-center gap-1.5">
                               {opt.title}
-                              {active && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                              {active && <CheckCircle2 className="h-3.5 w-3.5 text-accent" />}
                             </span>
                             <Badge variant={active ? 'default' : 'secondary'} className="font-normal tabular-nums shrink-0">
                               {opt.count}
@@ -510,21 +580,22 @@ export default function PaquetesListPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label htmlFor="export-desde" className="text-xs">Desde</Label>
-                        <Input
+                        <DatePicker
                           id="export-desde"
-                          type="date"
                           value={exportFechaDesde}
-                          onChange={(e) => setExportFechaDesde(e.target.value)}
+                          onChange={setExportFechaDesde}
+                          ariaLabel="Fecha desde para exportar"
                           className="h-9"
                         />
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="export-hasta" className="text-xs">Hasta</Label>
-                        <Input
+                        <DatePicker
                           id="export-hasta"
-                          type="date"
                           value={exportFechaHasta}
-                          onChange={(e) => setExportFechaHasta(e.target.value)}
+                          onChange={setExportFechaHasta}
+                          ariaLabel="Fecha hasta para exportar"
+                          minDate={exportFechaDesde || undefined}
                           className="h-9"
                         />
                       </div>
@@ -552,7 +623,7 @@ export default function PaquetesListPage() {
               {/* Vista previa de columnas que se van a exportar */}
               <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Columnas incluidas</p>
+                  <Label variant="caption">Columnas incluidas</Label>
                   <span className="text-[11px] text-muted-foreground">8 columnas</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -565,19 +636,19 @@ export default function PaquetesListPage() {
               </div>
 
               <div className="space-y-2 border-t border-border/60 pt-4">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Formato</p>
+                <Label variant="caption">Formato</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setExportFormato('excel')}
-                    className={`flex items-center gap-3 rounded-xl border p-3 text-left text-sm transition-all ${
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-left text-sm transition-all ease-claude ${
                       exportFormato === 'excel'
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                        ? 'border-accent bg-accent-soft/60 shadow-soft'
+                        : 'border-border hover:border-accent/40 hover:bg-muted/40'
                     }`}
                   >
                     <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      exportFormato === 'excel' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
+                      exportFormato === 'excel' ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'
                     }`}>
                       <FileSpreadsheet className="h-4 w-4" />
                     </span>
@@ -589,14 +660,14 @@ export default function PaquetesListPage() {
                   <button
                     type="button"
                     onClick={() => setExportFormato('pdf')}
-                    className={`flex items-center gap-3 rounded-xl border p-3 text-left text-sm transition-all ${
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-left text-sm transition-all ease-claude ${
                       exportFormato === 'pdf'
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                        ? 'border-accent bg-accent-soft/60 shadow-soft'
+                        : 'border-border hover:border-accent/40 hover:bg-muted/40'
                     }`}
                   >
                     <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      exportFormato === 'pdf' ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400' : 'bg-muted text-muted-foreground'
+                      exportFormato === 'pdf' ? 'bg-destructive/15 text-destructive' : 'bg-muted text-muted-foreground'
                     }`}>
                       <FileText className="h-4 w-4" />
                     </span>
@@ -609,7 +680,7 @@ export default function PaquetesListPage() {
               </div>
 
               <div className="space-y-2 border-t border-border/60 pt-4">
-                <Label htmlFor="export-filename" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Label htmlFor="export-filename" variant="caption">
                   Nombre del archivo
                 </Label>
                 <div className="flex items-center gap-2">
@@ -629,11 +700,11 @@ export default function PaquetesListPage() {
 
               <div className={`rounded-xl border px-3 py-2.5 text-xs flex items-start gap-2 ${
                 puedeExportar
-                  ? 'border-primary/20 bg-primary/5 text-foreground'
-                  : 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300'
+                  ? 'border-accent/30 bg-accent-soft/60 text-foreground'
+                  : 'border-warning/30 bg-warning/10 text-warning'
               }`}>
                 {puedeExportar ? (
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-accent" />
                 ) : (
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 )}
@@ -725,14 +796,14 @@ export default function PaquetesListPage() {
           <div className="flex flex-wrap items-center gap-1 border-b border-border/60 -mb-px">
             {([
               { id: 'todos' as const, label: 'Todos', count: tabCounts.todos, icon: <Boxes className="h-3.5 w-3.5" /> },
-              { id: 'sin-shipper' as const, label: 'Sin shipper', count: tabCounts.sinShipper, icon: <UserRound className="h-3.5 w-3.5" />, accent: 'amber' as const },
-              { id: 'sin-consolidado' as const, label: 'Sin consolidar', count: tabCounts.sinConsolidado, icon: <Layers className="h-3.5 w-3.5" />, accent: 'amber' as const },
-              { id: 'consolidados' as const, label: 'Consolidados', count: tabCounts.consolidados, icon: <CheckCircle2 className="h-3.5 w-3.5" />, accent: 'emerald' as const },
+              { id: 'sin-shipper' as const, label: 'Sin shipper', count: tabCounts.sinShipper, icon: <UserRound className="h-3.5 w-3.5" />, accent: 'warning' as const },
+              { id: 'sin-consolidado' as const, label: 'Sin consolidar', count: tabCounts.sinConsolidado, icon: <Layers className="h-3.5 w-3.5" />, accent: 'warning' as const },
+              { id: 'consolidados' as const, label: 'Consolidados', count: tabCounts.consolidados, icon: <CheckCircle2 className="h-3.5 w-3.5" />, accent: 'success' as const },
             ]).map((t) => {
               const active = estadoTab === t.id;
               const accentText =
-                t.accent === 'amber' ? 'text-amber-600 dark:text-amber-400' :
-                t.accent === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' :
+                t.accent === 'warning' ? 'text-warning' :
+                t.accent === 'success' ? 'text-success' :
                 'text-muted-foreground';
               return (
                 <button
@@ -742,12 +813,12 @@ export default function PaquetesListPage() {
                   className={
                     'group inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ' +
                     (active
-                      ? 'border-primary text-foreground'
+                      ? 'border-accent text-foreground'
                       : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border')
                   }
                   aria-pressed={active}
                 >
-                  <span className={active ? 'text-primary' : accentText}>{t.icon}</span>
+                  <span className={active ? 'text-accent' : accentText}>{t.icon}</span>
                   <span>{t.label}</span>
                   <Badge
                     variant={active ? 'default' : 'secondary'}
@@ -766,7 +837,7 @@ export default function PaquetesListPage() {
               setSearchQuery(v);
               setPage(0);
             }}
-            searchPlaceholder="Buscar por guía, destinatario, ref, contenido o shipper…  ( / )"
+            searchPlaceholder="Buscar por guía, destinatario, ref, contenido, shipper o consolidado…  ( / )"
             searchInputProps={{ 'data-paquetes-search': '' } as React.InputHTMLAttributes<HTMLInputElement>}
             filters={
               <div className="flex flex-wrap items-center gap-2">
@@ -792,24 +863,25 @@ export default function PaquetesListPage() {
                   <label htmlFor="filtro-desde" className="text-[11px] font-medium uppercase text-muted-foreground whitespace-nowrap">
                     Desde
                   </label>
-                  <input
+                  <DatePicker
                     id="filtro-desde"
-                    type="date"
                     value={fechaDesde}
-                    onChange={(e) => { setFechaDesde(e.target.value); setPage(0); }}
-                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    onChange={(v) => { setFechaDesde(v); setPage(0); }}
+                    ariaLabel="Filtrar paquetes desde"
+                    className="h-9 w-[140px]"
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
                   <label htmlFor="filtro-hasta" className="text-[11px] font-medium uppercase text-muted-foreground whitespace-nowrap">
                     Hasta
                   </label>
-                  <input
+                  <DatePicker
                     id="filtro-hasta"
-                    type="date"
                     value={fechaHasta}
-                    onChange={(e) => { setFechaHasta(e.target.value); setPage(0); }}
-                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    onChange={(v) => { setFechaHasta(v); setPage(0); }}
+                    ariaLabel="Filtrar paquetes hasta"
+                    minDate={fechaDesde || undefined}
+                    className="h-9 w-[140px]"
                   />
                 </div>
                 {(fechaDesde || fechaHasta || filterShipperId !== '' || searchQuery) && (
@@ -879,12 +951,23 @@ export default function PaquetesListPage() {
           />
 
           {selectedCount > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent/30 bg-accent-soft/60 px-3 py-2">
               <div className="text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <CheckCircle2 className="h-4 w-4 text-accent" />
                 <span><span className="font-semibold tabular-nums">{selectedCount}</span> paquete{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''}</span>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={imprimirEtiquetasSeleccion}
+                  title="Imprimir una etiqueta por cada paquete seleccionado"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Imprimir etiquetas
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -906,7 +989,10 @@ export default function PaquetesListPage() {
           )}
 
           {loading ? (
-            <LoadingState label="Cargando paquetes..." />
+            <>
+              <TableSkeleton rows={pageSize} columns={9} showCheckbox density={density} />
+              <PaginationSkeleton />
+            </>
           ) : error ? (
             <ErrorState
               title="Error al cargar paquetes"
@@ -959,7 +1045,7 @@ export default function PaquetesListPage() {
                               e.stopPropagation();
                               copiarTexto(r.numeroGuia, 'Guía', 'Este paquete no tiene número de guía.');
                             }}
-                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                             title="Copiar guía al portapapeles"
                             aria-label="Copiar guía"
                           >
@@ -969,13 +1055,94 @@ export default function PaquetesListPage() {
                       </div>
                     ),
                   },
+                  {
+                    header: 'ESTADO',
+                    className: 'w-[120px]',
+                    cell: (r) => {
+                      if (r.consolidado) {
+                        return (
+                          <Badge className="font-normal bg-success/15 text-success hover:bg-success/20 border border-success/20">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Consolidado
+                          </Badge>
+                        );
+                      }
+                      if (r.shipper) {
+                        return (
+                          <Badge className="font-normal bg-info/15 text-info hover:bg-info/20 border border-info/20">
+                            <UserRound className="h-3 w-3 mr-1" />
+                            Con shipper
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Badge variant="outline" className="font-normal text-warning border-warning/30 bg-warning/10">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Pendiente
+                        </Badge>
+                      );
+                    },
+                  },
                   { header: 'DESTINATARIO', sortKey: 'destinatario', cell: (r) => r.destinatario ?? '—' },
+                  {
+                    header: 'SHIPPER',
+                    sortKey: 'shipper',
+                    cell: (r) => {
+                      if (!r.shipper) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/paquetes/${r.id}/edit`);
+                            }}
+                            className="text-xs text-warning hover:text-warning/80 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-warning/40 rounded"
+                            title="Asignar shipper"
+                          >
+                            Sin asignar
+                          </button>
+                        );
+                      }
+                      return (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/shippers/${r.shipper!.id}`);
+                          }}
+                          className="inline-flex max-w-full focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 rounded"
+                          title={`Ver perfil de ${r.shipper.nombre}`}
+                        >
+                          <Badge variant="secondary" className="font-normal hover:bg-muted cursor-pointer">
+                            {r.shipper.nombre}
+                          </Badge>
+                        </button>
+                      );
+                    },
+                  },
                   {
                     header: 'REF',
                     sortKey: 'ref',
-                    cell: (r) => r.ref
-                      ? <span className="text-xs text-muted-foreground font-mono">{r.ref}</span>
-                      : <span className="text-muted-foreground">—</span>,
+                    cell: (r) => {
+                      if (!r.ref) return <span className="text-muted-foreground">—</span>;
+                      return (
+                        <div className="group/copy inline-flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs text-muted-foreground font-mono truncate">{r.ref}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copiarTexto(r.ref, 'Ref');
+                            }}
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            title="Copiar referencia al portapapeles"
+                            aria-label="Copiar ref"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      );
+                    },
                   },
                   { header: 'CONTENIDO', sortKey: 'contenido', cell: (r) => r.contenido ?? '—' },
                   {
@@ -997,13 +1164,6 @@ export default function PaquetesListPage() {
                     },
                   },
                   {
-                    header: 'SHIPPER',
-                    sortKey: 'shipper',
-                    cell: (r) => r.shipper?.nombre
-                      ? <Badge variant="secondary" className="font-normal">{r.shipper.nombre}</Badge>
-                      : <span className="text-xs text-amber-600 dark:text-amber-400">Sin asignar</span>,
-                  },
-                  {
                     header: 'CONSOLIDADO',
                     sortKey: 'consolidado',
                     cell: (r) => {
@@ -1011,13 +1171,23 @@ export default function PaquetesListPage() {
                       const numero = r.consolidado.numeroGuia ?? `#${r.consolidado.id}`;
                       return (
                         <div className="group/copy inline-flex items-center gap-1.5 min-w-0">
-                          <Badge variant="outline" className="font-normal font-mono text-[11px]">
-                            {numero}
-                          </Badge>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/consolidados/${r.consolidado!.id}`);
+                            }}
+                            className="inline-flex focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 rounded"
+                            title={`Ver consolidado ${numero}`}
+                          >
+                            <Badge variant="outline" className="font-normal font-mono text-[11px] hover:bg-muted cursor-pointer">
+                              {numero}
+                            </Badge>
+                          </button>
                           {r.posicionEnConsolidado != null && (
                             <span
                               title="Posición dentro del consolidado (calculada automáticamente)"
-                              className="inline-flex items-center justify-center min-w-[24px] h-5 px-1 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[10px] font-semibold tabular-nums"
+                              className="inline-flex items-center justify-center min-w-[24px] h-5 px-1 rounded-full bg-accent-soft text-accent-soft-foreground text-[10px] font-semibold tabular-nums"
                             >
                               #{r.posicionEnConsolidado}
                             </span>
@@ -1028,41 +1198,13 @@ export default function PaquetesListPage() {
                               e.stopPropagation();
                               copiarTexto(numero, 'Consolidado');
                             }}
-                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                             title="Copiar número de consolidado al portapapeles"
                             aria-label="Copiar consolidado"
                           >
                             <Copy className="h-3 w-3" />
                           </button>
                         </div>
-                      );
-                    },
-                  },
-                  {
-                    header: 'ESTADO',
-                    className: 'w-[120px]',
-                    cell: (r) => {
-                      if (r.consolidado) {
-                        return (
-                          <Badge className="font-normal bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15 border border-emerald-500/20">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Consolidado
-                          </Badge>
-                        );
-                      }
-                      if (r.shipper) {
-                        return (
-                          <Badge className="font-normal bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/15 border border-blue-500/20">
-                            <UserRound className="h-3 w-3 mr-1" />
-                            Con shipper
-                          </Badge>
-                        );
-                      }
-                      return (
-                        <Badge variant="outline" className="font-normal text-amber-700 dark:text-amber-300 border-amber-500/30 bg-amber-500/5">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Pendiente
-                        </Badge>
                       );
                     },
                   },

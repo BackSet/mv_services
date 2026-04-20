@@ -1,47 +1,24 @@
 import { jsPDF } from 'jspdf';
 import type { Paquete } from '@/services/paquetes.service';
+import {
+  BRAND_RGB,
+  type RGB,
+  formatPrintDate,
+  formatPrintNumber,
+  PRINT_BRAND_TEXT,
+} from '@/lib/print/brandTokens';
 
 // =============================================================================
-// Paleta de marca MV Services
+// Alias locales (legibilidad) — la fuente de verdad es `brandTokens.ts`
 // =============================================================================
 
-type RGB = [number, number, number];
-
-const BRAND = {
-  black:        [0, 0, 0]            as RGB, // mvs-primary
-  blackSoft:    [12, 12, 12]         as RGB, // mvs-black-soft
-  grayDark:     [55, 53, 47]         as RGB, // mvs-gray-dark (para texto)
-  grayMid:      [115, 115, 115]      as RGB, // texto secundario
-  grayBorder:   [238, 238, 238]      as RGB, // mvs-gray-border
-  grayLight:    [248, 249, 250]      as RGB, // mvs-gray-light (fondos sutiles)
-  zebra:        [252, 252, 251]      as RGB, // alterno muy sutil
-  orange:       [255, 107, 53]       as RGB, // mvs-secondary
-  orangeSoft:   [255, 140, 90]       as RGB, // mvs-accent
-  orangeFaded:  [255, 240, 232]      as RGB, // fondo de chip naranja muy claro
-  white:        [255, 255, 255]      as RGB,
-  success:      [22, 163, 74]        as RGB, // emerald-600
-  warning:      [217, 119, 6]        as RGB, // amber-600
-};
+const BRAND = BRAND_RGB;
+const formatFecha = (s: string | null | undefined, withTime = true) => formatPrintDate(s, withTime);
+const formatNumber = formatPrintNumber;
 
 // =============================================================================
-// Helpers
+// Helpers de pintado jsPDF
 // =============================================================================
-
-function formatFecha(s: string | null | undefined, withTime = true): string {
-  if (!s) return '—';
-  try {
-    const d = new Date(s);
-    return withTime
-      ? d.toLocaleString('es', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : d.toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return s;
-  }
-}
-
-function formatNumber(n: number, decimals = 2): string {
-  return n.toLocaleString('es', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
 
 function setFill(doc: jsPDF, c: RGB) { doc.setFillColor(c[0], c[1], c[2]); }
 function setDraw(doc: jsPDF, c: RGB) { doc.setDrawColor(c[0], c[1], c[2]); }
@@ -191,16 +168,16 @@ export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void 
     setText(doc, BRAND.black);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('MV', MARGIN_X, baseY);
-    const mvW = doc.getTextWidth('MV');
+    doc.text(PRINT_BRAND_TEXT.wordmarkLeft, MARGIN_X, baseY);
+    const mvW = doc.getTextWidth(PRINT_BRAND_TEXT.wordmarkLeft);
     setText(doc, BRAND.orange);
-    doc.text('SERVICES', MARGIN_X + mvW, baseY);
+    doc.text(PRINT_BRAND_TEXT.wordmarkRight, MARGIN_X + mvW, baseY);
 
     // Subtítulo
     setText(doc, BRAND.grayMid);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.text('SISTEMA DE GESTIÓN', MARGIN_X, baseY + 4);
+    doc.text(PRINT_BRAND_TEXT.systemSubtitle, MARGIN_X, baseY + 4);
 
     // Bloque derecho: título del reporte
     setText(doc, BRAND.grayDark);
@@ -336,15 +313,15 @@ export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     setText(doc, BRAND.black);
-    doc.text('MV', MARGIN_X, yFooter);
-    const mvW = doc.getTextWidth('MV');
+    doc.text(PRINT_BRAND_TEXT.wordmarkLeft, MARGIN_X, yFooter);
+    const mvW = doc.getTextWidth(PRINT_BRAND_TEXT.wordmarkLeft);
     setText(doc, BRAND.orange);
-    doc.text('SERVICES', MARGIN_X + mvW, yFooter);
-    const svcW = doc.getTextWidth('SERVICES');
+    doc.text(PRINT_BRAND_TEXT.wordmarkRight, MARGIN_X + mvW, yFooter);
+    const svcW = doc.getTextWidth(PRINT_BRAND_TEXT.wordmarkRight);
 
     setText(doc, BRAND.grayMid);
     doc.setFont('helvetica', 'normal');
-    doc.text('  •  Reporte de paquetes', MARGIN_X + mvW + svcW, yFooter);
+    doc.text(`  •  Reporte de paquetes  •  ${PRINT_BRAND_TEXT.url}`, MARGIN_X + mvW + svcW, yFooter);
 
     // Página
     setText(doc, BRAND.grayDark);
@@ -446,10 +423,10 @@ export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void 
 
   // Metadata del documento
   doc.setProperties({
-    title: 'MV Services — Listado de paquetes',
+    title: `${PRINT_BRAND_TEXT.wordmarkLeft}${PRINT_BRAND_TEXT.wordmarkRight} — Listado de paquetes`,
     subject: 'Reporte de paquetes',
-    author: 'MV Services',
-    creator: 'MV Services',
+    author: `${PRINT_BRAND_TEXT.wordmarkLeft}${PRINT_BRAND_TEXT.wordmarkRight}`,
+    creator: `${PRINT_BRAND_TEXT.wordmarkLeft}${PRINT_BRAND_TEXT.wordmarkRight}`,
   });
 
   const name = filename ?? `paquetes_${new Date().toISOString().slice(0, 10)}.pdf`;

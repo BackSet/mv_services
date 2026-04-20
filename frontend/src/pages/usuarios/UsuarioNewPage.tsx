@@ -253,11 +253,11 @@ export default function UsuarioNewPage() {
 
   const strengthBar = (() => {
     const colors: Record<string, string> = {
-      red: 'bg-red-500',
-      orange: 'bg-orange-500',
-      amber: 'bg-amber-500',
-      emerald: 'bg-emerald-500',
-      green: 'bg-green-500',
+      red: 'bg-destructive',
+      orange: 'bg-accent',
+      amber: 'bg-warning',
+      emerald: 'bg-success',
+      green: 'bg-success',
     };
     return colors[passwordStrength.color];
   })();
@@ -301,10 +301,10 @@ export default function UsuarioNewPage() {
           className="max-w-4xl mx-auto p-6 space-y-6 pb-32"
         >
           {/* Banner de progreso */}
-          <div className="rounded-xl border border-border bg-card/50 p-4">
+          <div className="rounded-xl border border-border bg-card/50 p-4 shadow-soft">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent-soft-foreground">
                   <User className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
@@ -315,21 +315,14 @@ export default function UsuarioNewPage() {
                 </div>
               </div>
               <Badge
-                variant="outline"
-                className={
-                  progreso === 100
-                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                    : progreso >= 50
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                    : ''
-                }
+                variant={progreso === 100 ? 'success' : progreso >= 50 ? 'warning' : 'outline'}
               >
                 {progreso === 100 ? 'Listo para guardar' : `${progreso}% completo`}
               </Badge>
             </div>
             <div className="mt-3 h-1 rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full transition-all ${progreso === 100 ? 'bg-emerald-500' : 'bg-primary'}`}
+                className={`h-full transition-all ease-claude ${progreso === 100 ? 'bg-success' : 'bg-accent'}`}
                 style={{ width: `${progreso}%` }}
               />
             </div>
@@ -339,9 +332,9 @@ export default function UsuarioNewPage() {
           <SectionCard icon={Info} iconColor="blue" title="Cuenta">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Usuario <span className="text-destructive">*</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {form.username.length}/50
                   </span>
                 </Label>
@@ -374,7 +367,7 @@ export default function UsuarioNewPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Email <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
@@ -401,9 +394,9 @@ export default function UsuarioNewPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Contraseña <span className="text-destructive">*</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                  <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                     {form.password.length} caracteres
                   </span>
                 </Label>
@@ -425,7 +418,7 @@ export default function UsuarioNewPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent flex items-center justify-center transition-colors"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors"
                       title={showPassword ? 'Ocultar' : 'Mostrar'}
                       tabIndex={-1}
                     >
@@ -475,7 +468,7 @@ export default function UsuarioNewPage() {
                     <p className="text-[11px] text-muted-foreground flex items-center justify-between">
                       <span>Fortaleza: <span className="font-medium text-foreground">{passwordStrength.label}</span></span>
                       {passwordStrength.score >= 3 && (
-                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1 text-success">
                           <CheckCircle2 className="h-3 w-3" />
                           Aceptable
                         </span>
@@ -498,7 +491,7 @@ export default function UsuarioNewPage() {
           <SectionCard icon={Shield} iconColor="green" title="Permisos y estado">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Rol <span className="text-destructive">*</span>
                 </Label>
                 <Select
@@ -532,16 +525,14 @@ export default function UsuarioNewPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Estado de la cuenta
-                </Label>
+                <Label variant="caption">Estado de la cuenta</Label>
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, activo: !form.activo })}
                   className={cn(
-                    'h-9 w-full rounded-md border px-3 flex items-center justify-between transition-colors',
+                    'h-9 w-full rounded-md border px-3 flex items-center justify-between transition-colors ease-claude',
                     form.activo
-                      ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400'
+                      ? 'border-success/30 bg-success/5 text-success'
                       : 'border-border bg-muted/30 text-muted-foreground',
                   )}
                 >
@@ -561,7 +552,7 @@ export default function UsuarioNewPage() {
                   <span
                     className={cn(
                       'h-4 w-7 rounded-full transition-colors relative',
-                      form.activo ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+                      form.activo ? 'bg-success' : 'bg-muted-foreground/40',
                     )}
                   >
                     <span
@@ -583,7 +574,7 @@ export default function UsuarioNewPage() {
             title="Shipper asociado"
             right={
               form.shipperId ? (
-                <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30">
+                <Badge variant="brand" className="text-[10px]">
                   Vinculado
                 </Badge>
               ) : (
@@ -593,9 +584,7 @@ export default function UsuarioNewPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Shipper
-                </Label>
+                <Label variant="caption">Shipper</Label>
                 <ShipperCombobox
                   shippers={shippers}
                   value={form.shipperId === '' ? '' : Number(form.shipperId)}
@@ -625,12 +614,12 @@ export default function UsuarioNewPage() {
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 px-6 py-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
               {isValid ? (
-                <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1.5 text-success">
                   <CheckCircle2 className="h-4 w-4" />
                   <span className="truncate">Listo para crear el usuario</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center gap-1.5 text-warning">
                   <AlertCircle className="h-4 w-4" />
                   <span className="truncate">
                     {Object.keys(errors).length} campo{Object.keys(errors).length === 1 ? '' : 's'} por completar

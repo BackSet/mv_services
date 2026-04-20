@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Hash,
+  PlusCircle,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
@@ -27,7 +28,7 @@ import type { NotionTableAction, SortState } from '@/components/notion/NotionTab
 import EmptyState from '@/components/notion/EmptyState';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { ListPagination } from '@/components/list/ListPagination';
-import { LoadingState } from '@/components/states/LoadingState';
+import { TableSkeleton, PaginationSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,9 +73,9 @@ function readPrefs(): Prefs {
 
 function rolBadgeClass(nombre: string | null | undefined): string {
   const r = (nombre ?? '').toUpperCase();
-  if (r.includes('ADMIN')) return 'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30';
-  if (r.includes('OPERA')) return 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30';
-  if (r.includes('SHIPPER')) return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30';
+  if (r.includes('ADMIN')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
+  if (r.includes('OPERA')) return 'bg-info/15 text-info border-info/30';
+  if (r.includes('SHIPPER')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
   return 'bg-muted/40 text-muted-foreground border-border/50';
 }
 
@@ -258,16 +259,25 @@ export default function RolesListPage() {
 
   const rowActions = (r: Rol): NotionTableAction<Rol>[] => {
     const usuarios = usageMap[r.id] ?? 0;
-    return [
+    const sinPermisos = (r.permisos?.length ?? 0) === 0;
+    const actions: NotionTableAction<Rol>[] = [
       { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/roles/${r.id}`) },
       { label: 'Editar', icon: Pencil, onClick: () => navigate(`/roles/${r.id}/edit`) },
-      {
-        label: usuarios > 0 ? `En uso por ${usuarios} usuario${usuarios === 1 ? '' : 's'}` : 'Eliminar',
-        icon: Trash2,
-        onClick: () => requestDelete(r),
-        destructive: true,
-      },
     ];
+    if (sinPermisos) {
+      actions.push({
+        label: 'Asignar permisos',
+        icon: PlusCircle,
+        onClick: () => navigate(`/roles/${r.id}/edit`),
+      });
+    }
+    actions.push({
+      label: usuarios > 0 ? `En uso por ${usuarios} usuario${usuarios === 1 ? '' : 's'}` : 'Eliminar',
+      icon: Trash2,
+      onClick: () => requestDelete(r),
+      destructive: true,
+    });
+    return actions;
   };
 
   const rolToDelete = deleteId != null ? rows?.find((x) => x.id === deleteId) : null;
@@ -407,9 +417,9 @@ export default function RolesListPage() {
                 key={t.key}
                 type="button"
                 onClick={() => { setTab(t.key); setPage(0); }}
-                className={`relative px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2 whitespace-nowrap ${
+                className={`relative px-3 py-2 text-xs font-medium transition-colors ease-claude -mb-px border-b-2 whitespace-nowrap ${
                   tab === t.key
-                    ? 'text-foreground border-primary'
+                    ? 'text-foreground border-accent'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
               >
@@ -469,7 +479,10 @@ export default function RolesListPage() {
           />
 
           {loading ? (
-            <LoadingState label="Cargando roles..." />
+            <>
+              <TableSkeleton rows={pageSize} columns={4} density={density} />
+              <PaginationSkeleton />
+            </>
           ) : error ? (
             <ErrorState
               title="Error al cargar roles"
@@ -515,7 +528,7 @@ export default function RolesListPage() {
                             e.stopPropagation();
                             copiarTexto(r.nombre, 'Rol');
                           }}
-                          className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                          className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                           title="Copiar nombre"
                           aria-label="Copiar nombre"
                         >
@@ -525,16 +538,40 @@ export default function RolesListPage() {
                     ),
                   },
                   {
+                    header: 'USUARIOS',
+                    sortKey: 'usuarios',
+                    className: 'w-[110px]',
+                    cell: (r) => {
+                      const cnt = usageMap[r.id] ?? 0;
+                      return cnt > 0 ? (
+                        <Badge variant="info" className="text-[10px] gap-1 tabular-nums">
+                          <Users className="h-2.5 w-2.5" />
+                          {cnt}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      );
+                    },
+                  },
+                  {
                     header: 'PERMISOS',
                     sortKey: 'permisos',
                     cell: (r) => {
                       const total = r.permisos?.length ?? 0;
                       if (total === 0) {
                         return (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/roles/${r.id}/edit`);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] text-warning hover:text-warning/80 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-warning/40 rounded"
+                            title="Asignar permisos a este rol"
+                          >
                             <ShieldAlert className="h-3 w-3" />
-                            Sin permisos
-                          </span>
+                            Sin permisos · Asignar
+                          </button>
                         );
                       }
                       const grupos = agruparPermisos(r.permisos ?? []);
@@ -542,22 +579,29 @@ export default function RolesListPage() {
                       const restantes = grupos.length - visibles.length;
                       return (
                         <div className="flex flex-wrap items-center gap-1">
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] gap-1 bg-violet-500/5 border-violet-500/30 text-violet-700 dark:text-violet-400 tabular-nums shrink-0"
-                          >
+                          <Badge variant="brand" className="text-[10px] gap-1 tabular-nums shrink-0">
                             <KeyRound className="h-2.5 w-2.5" />
                             {total}
                           </Badge>
                           {visibles.map((g) => (
-                            <Badge
+                            <button
                               key={g.moduloKey}
-                              variant="secondary"
-                              className="text-[10px] font-normal shrink-0"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/permisos?modulo=${encodeURIComponent(g.moduloKey)}`);
+                              }}
+                              className="rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                              title={`Ver permisos del módulo ${g.modulo}`}
                             >
-                              {g.modulo}
-                              <span className="ml-1 opacity-60 tabular-nums">{g.permisos.length}</span>
-                            </Badge>
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] font-normal shrink-0 hover:bg-muted/80 cursor-pointer"
+                              >
+                                {g.modulo}
+                                <span className="ml-1 opacity-60 tabular-nums">{g.permisos.length}</span>
+                              </Badge>
+                            </button>
                           ))}
                           {restantes > 0 && (
                             <span className="text-[10px] text-muted-foreground tabular-nums">
@@ -565,22 +609,6 @@ export default function RolesListPage() {
                             </span>
                           )}
                         </div>
-                      );
-                    },
-                  },
-                  {
-                    header: 'USUARIOS',
-                    sortKey: 'usuarios',
-                    className: 'w-[110px]',
-                    cell: (r) => {
-                      const cnt = usageMap[r.id] ?? 0;
-                      return cnt > 0 ? (
-                        <Badge variant="outline" className="text-[10px] gap-1 bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30 tabular-nums">
-                          <Users className="h-2.5 w-2.5" />
-                          {cnt}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
                       );
                     },
                   },

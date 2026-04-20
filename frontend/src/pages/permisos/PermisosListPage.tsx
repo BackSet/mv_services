@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   KeyRound,
@@ -16,6 +16,8 @@ import {
   AlignJustify,
   Hash,
   AlertCircle,
+  PlusCircle,
+  ChevronDown,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
@@ -26,14 +28,15 @@ import type { NotionTableAction, SortState } from '@/components/notion/NotionTab
 import EmptyState from '@/components/notion/EmptyState';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { ListPagination } from '@/components/list/ListPagination';
-import { LoadingState } from '@/components/states/LoadingState';
+import { TableSkeleton, PaginationSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Permiso } from '@/services/permisos.service';
 import { listPermisos, deletePermiso } from '@/services/permisos.service';
-import { listRoles } from '@/services/roles.service';
+import { listRoles, type Rol } from '@/services/roles.service';
 import {
   accionBadgeClass,
   agruparPermisos,
@@ -79,6 +82,9 @@ function readPrefs(): Prefs {
 
 export default function PermisosListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialModulo = searchParams.get('modulo')?.toUpperCase() ?? 'all';
+
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Permiso[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -88,9 +94,10 @@ export default function PermisosListPage() {
   const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [moduloFilter, setModuloFilter] = useState<string>('all');
+  const [moduloFilter, setModuloFilter] = useState<string>(initialModulo || 'all');
   const [accionFilter, setAccionFilter] = useState<string>('all');
   const [usageMap, setUsageMap] = useState<Record<number, number>>({});
+  const [rolesByPermiso, setRolesByPermiso] = useState<Record<number, Rol[]>>({});
 
   const initialPrefs = readPrefs();
   const [pageSize, setPageSize] = useState<number>(initialPrefs.pageSize);
@@ -123,17 +130,21 @@ export default function PermisosListPage() {
     }
   }, []);
 
-  // Cargar conteo de roles por permiso (no bloqueante)
+  // Cargar conteo de roles por permiso (no bloqueante) + nombres
   const loadUsage = useCallback(async () => {
     try {
       const allRoles = await listRoles();
       const map: Record<number, number> = {};
+      const byPermiso: Record<number, Rol[]> = {};
       for (const r of allRoles) {
         for (const p of r.permisos ?? []) {
           map[p.id] = (map[p.id] ?? 0) + 1;
+          if (!byPermiso[p.id]) byPermiso[p.id] = [];
+          byPermiso[p.id].push(r);
         }
       }
       setUsageMap(map);
+      setRolesByPermiso(byPermiso);
     } catch { /* sin conteo */ }
   }, []);
 
@@ -271,6 +282,22 @@ export default function PermisosListPage() {
     }
   }, []);
 
+  // Mantener `?modulo=` sincronizado en la URL para enlaces compartibles.
+  useEffect(() => {
+    const current = searchParams.get('modulo');
+    if (moduloFilter === 'all') {
+      if (current) {
+        const next = new URLSearchParams(searchParams);
+        next.delete('modulo');
+        setSearchParams(next, { replace: true });
+      }
+    } else if (current !== moduloFilter) {
+      const next = new URLSearchParams(searchParams);
+      next.set('modulo', moduloFilter);
+      setSearchParams(next, { replace: true });
+    }
+  }, [moduloFilter, searchParams, setSearchParams]);
+
   const limpiarFiltros = useCallback(() => {
     setSearch('');
     setTab('all');
@@ -294,16 +321,30 @@ export default function PermisosListPage() {
 
   const rowActions = (r: Permiso): NotionTableAction<Permiso>[] => {
     const usos = usageMap[r.id] ?? 0;
-    return [
+    const sinDescripcion = !r.descripcion?.trim();
+    const actions: NotionTableAction<Permiso>[] = [
       { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/permisos/${r.id}`) },
       { label: 'Editar', icon: Pencil, onClick: () => navigate(`/permisos/${r.id}/edit`) },
       {
-        label: usos > 0 ? `En uso por ${usos} rol${usos === 1 ? '' : 'es'}` : 'Eliminar',
-        icon: Trash2,
-        onClick: () => requestDelete(r),
-        destructive: true,
+        label: 'Copiar ID',
+        icon: Hash,
+        onClick: () => copiarTexto(String(r.id), 'ID'),
       },
     ];
+    if (sinDescripcion) {
+      actions.push({
+        label: 'Agregar descripción',
+        icon: PlusCircle,
+        onClick: () => navigate(`/permisos/${r.id}/edit`),
+      });
+    }
+    actions.push({
+      label: usos > 0 ? `En uso por ${usos} rol${usos === 1 ? '' : 'es'}` : 'Eliminar',
+      icon: Trash2,
+      onClick: () => requestDelete(r),
+      destructive: true,
+    });
+    return actions;
   };
 
   const permisoToDelete = deleteId != null ? rows.find((p) => p.id === deleteId) : null;
@@ -447,9 +488,9 @@ export default function PermisosListPage() {
                 key={t.key}
                 type="button"
                 onClick={() => { setTab(t.key); setPage(0); }}
-                className={`relative px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2 whitespace-nowrap ${
+                className={`relative px-3 py-2 text-xs font-medium transition-colors ease-claude -mb-px border-b-2 whitespace-nowrap ${
                   tab === t.key
-                    ? 'text-foreground border-primary'
+                    ? 'text-foreground border-accent'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
               >
@@ -543,7 +584,10 @@ export default function PermisosListPage() {
           />
 
           {loading ? (
-            <LoadingState label="Cargando permisos..." />
+            <>
+              <TableSkeleton rows={pageSize} columns={6} density={density} />
+              <PaginationSkeleton />
+            </>
           ) : fetchError ? (
             <ErrorState
               title="Error al cargar permisos"
@@ -595,7 +639,7 @@ export default function PermisosListPage() {
                               e.stopPropagation();
                               copiarTexto(r.nombre, 'Permiso');
                             }}
-                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                             title="Copiar nombre"
                             aria-label="Copiar nombre"
                           >
@@ -636,6 +680,75 @@ export default function PermisosListPage() {
                     },
                   },
                   {
+                    header: 'ROLES',
+                    sortKey: 'roles',
+                    className: 'w-[120px]',
+                    cell: (r) => {
+                      const usos = usageMap[r.id] ?? 0;
+                      if (usos === 0) {
+                        return <span className="text-muted-foreground text-xs">—</span>;
+                      }
+                      const roles = rolesByPermiso[r.id] ?? [];
+                      return (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                              title={`Ver roles que usan ${r.nombre}`}
+                            >
+                              <Badge variant="brand" className="text-[10px] gap-1 tabular-nums hover:bg-accent/85 cursor-pointer">
+                                <Shield className="h-2.5 w-2.5" />
+                                {usos}
+                                <ChevronDown className="h-2.5 w-2.5 opacity-70" />
+                              </Badge>
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="start"
+                            sideOffset={6}
+                            className="w-64 p-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="space-y-2">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Roles ({usos})
+                              </div>
+                              {roles.length === 0 ? (
+                                <div className="text-xs text-muted-foreground italic">
+                                  Sin información detallada.
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                                  {roles.map((rol) => (
+                                    <button
+                                      key={rol.id}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/roles/${rol.id}`);
+                                      }}
+                                      className="inline-flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                                    >
+                                      <span className="inline-flex items-center gap-1.5 min-w-0">
+                                        <Shield className="h-3 w-3 text-accent shrink-0" />
+                                        <span className="truncate">{rol.nombre}</span>
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground shrink-0">
+                                        {rol.permisos?.length ?? 0} permisos
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    },
+                  },
+                  {
                     header: 'DESCRIPCIÓN',
                     sortKey: 'descripcion',
                     cell: (r) =>
@@ -644,40 +757,37 @@ export default function PermisosListPage() {
                           {r.descripcion}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-amber-600 dark:text-amber-400 italic inline-flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Sin descripción
-                        </span>
-                      ),
-                  },
-                  {
-                    header: 'ROLES',
-                    sortKey: 'roles',
-                    className: 'w-[100px]',
-                    cell: (r) => {
-                      const usos = usageMap[r.id] ?? 0;
-                      return usos > 0 ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] gap-1 bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30 tabular-nums"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/permisos/${r.id}/edit`);
+                          }}
+                          className="text-[11px] text-warning italic inline-flex items-center gap-1 hover:text-warning/80 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-warning/40 rounded"
+                          title="Agregar descripción a este permiso"
                         >
-                          <Shield className="h-2.5 w-2.5" />
-                          {usos}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      );
-                    },
+                          <AlertCircle className="h-3 w-3" />
+                          Agregar descripción
+                        </button>
+                      ),
                   },
                   {
                     header: 'ID',
                     sortKey: 'id',
                     className: 'w-[80px] text-xs text-muted-foreground tabular-nums',
                     cell: (r) => (
-                      <span className="inline-flex items-center gap-1" title={`ID interno: ${r.id}`}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copiarTexto(String(r.id), 'ID');
+                        }}
+                        className="inline-flex items-center gap-1 rounded border border-transparent px-1 py-0.5 hover:bg-muted hover:text-foreground transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40"
+                        title={`Copiar ID interno: ${r.id}`}
+                      >
                         <Hash className="h-2.5 w-2.5 opacity-60" />
                         {r.id}
-                      </span>
+                      </button>
                     ),
                   },
                 ]}

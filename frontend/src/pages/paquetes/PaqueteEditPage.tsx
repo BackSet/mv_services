@@ -6,7 +6,6 @@ import {
   Package,
   Info,
   Globe,
-  Loader2,
   AlertCircle,
   CheckCircle2,
   RotateCcw,
@@ -29,7 +28,7 @@ import {
 import { listShippers, type Shipper } from '@/services/shippers.service';
 import { ShipperCombobox } from '@/components/shipper/ShipperCombobox';
 import { useMe } from '@/hooks/useMe';
-import { LoadingState } from '@/components/states/LoadingState';
+import { FormPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -310,21 +309,21 @@ export default function PaqueteEditPage() {
             <Button
               size="sm"
               onClick={() => submit()}
-              disabled={submitting || !isValid || !isDirty}
-              className="gap-1.5 h-8 shadow-sm"
+              disabled={!isValid || !isDirty}
+              loading={submitting}
+              loadingText="Guardando…"
+              className="gap-1.5 h-8 shadow-soft"
               title="Guardar (Ctrl+S)"
             >
-              {submitting
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Save className="h-3.5 w-3.5" />}
-              {submitting ? 'Guardando…' : 'Guardar'}
+              <Save className="h-3.5 w-3.5" />
+              Guardar
             </Button>
           </div>
         }
       >
         {loading ? (
           <div className="p-6">
-            <LoadingState label="Cargando paquete..." />
+            <FormPageSkeleton sections={[4, 3]} />
           </div>
         ) : loadError ? (
           <div className="p-6">
@@ -345,13 +344,13 @@ export default function PaqueteEditPage() {
               <div className={cn(
                 'rounded-xl border p-3 flex items-center justify-between gap-3 flex-wrap',
                 isDirty
-                  ? 'border-primary/30 bg-primary/5'
+                  ? 'border-accent/30 bg-accent-soft/60'
                   : 'border-border bg-card',
               )}>
                 <div className="flex items-center gap-2 text-sm">
                   {isDirty ? (
                     <>
-                      <AlertCircle className="h-4 w-4 text-primary" />
+                      <AlertCircle className="h-4 w-4 text-accent" />
                       <span className="font-medium">Cambios sin guardar</span>
                       <div className="flex flex-wrap gap-1">
                         {changedFields.map((c) => (
@@ -363,7 +362,7 @@ export default function PaqueteEditPage() {
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                       <span className="text-muted-foreground">Sin cambios pendientes</span>
                     </>
                   )}
@@ -383,7 +382,7 @@ export default function PaqueteEditPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5 md:col-span-2">
-                    <Label htmlFor="numeroGuia" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Label htmlFor="numeroGuia" variant="form" className="flex items-center gap-1">
                       Número de guía <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -406,7 +405,7 @@ export default function PaqueteEditPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="destinatario" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <Label htmlFor="destinatario" variant="form">
                       Destinatario
                     </Label>
                     <Input
@@ -420,8 +419,8 @@ export default function PaqueteEditPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="ref" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Ref <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
+                    <Label htmlFor="ref" variant="form">
+                      Ref <span className="text-muted-foreground font-normal">(opcional)</span>
                     </Label>
                     <Input
                       id="ref"
@@ -433,7 +432,7 @@ export default function PaqueteEditPage() {
                   </div>
 
                   <div className="space-y-1.5 md:col-span-2">
-                    <Label htmlFor="contenido" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <Label htmlFor="contenido" variant="form">
                       Contenido
                     </Label>
                     <Input
@@ -456,7 +455,7 @@ export default function PaqueteEditPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <Label htmlFor="pesoLbs" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <Label htmlFor="pesoLbs" variant="form">
                       Peso (lbs)
                     </Label>
                     <div className="relative">
@@ -483,8 +482,8 @@ export default function PaqueteEditPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Equivalencia (kgs) <span className="text-muted-foreground/60 normal-case font-normal">(automática)</span>
+                    <Label variant="form">
+                      Equivalencia (kgs) <span className="text-muted-foreground font-normal">(automática)</span>
                     </Label>
                     <div className="relative h-9 rounded-md border border-dashed border-border bg-muted/30 flex items-center justify-between px-3">
                       <span className="tabular-nums text-sm">
@@ -510,8 +509,8 @@ export default function PaqueteEditPage() {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <Label htmlFor="shipper" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                        Shipper <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
+                      <Label htmlFor="shipper" variant="form">
+                        Shipper <span className="text-muted-foreground font-normal">(opcional)</span>
                       </Label>
                       <ShipperCombobox
                         shippers={shippers}
@@ -530,7 +529,7 @@ export default function PaqueteEditPage() {
                         );
                       })()}
                       {!shipperId && originalShipperId && (
-                        <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        <p className="text-[11px] text-warning flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" /> Vas a quitar el shipper actual.
                         </p>
                       )}
@@ -574,13 +573,13 @@ export default function PaqueteEditPage() {
                   <Button
                     size="sm"
                     onClick={() => submit()}
-                    disabled={submitting || !isValid || !isDirty}
-                    className="gap-1.5 shadow-sm"
+                    disabled={!isValid || !isDirty}
+                    loading={submitting}
+                    loadingText="Guardando…"
+                    className="gap-1.5 shadow-soft"
                   >
-                    {submitting
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <Save className="h-3.5 w-3.5" />}
-                    {submitting ? 'Guardando…' : 'Guardar y volver'}
+                    <Save className="h-3.5 w-3.5" />
+                    Guardar y volver
                   </Button>
                 </div>
               </div>

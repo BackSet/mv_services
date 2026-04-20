@@ -326,12 +326,14 @@ export default function ShipperNewPage() {
             <Button
               size="sm"
               onClick={() => submit()}
-              disabled={submitting || !isValid}
+              disabled={!isValid}
+              loading={submitting}
+              loadingText="Guardando…"
               className="gap-1.5"
               title="Guardar (Ctrl+S)"
             >
               <Save className="h-3.5 w-3.5" />
-              {submitting ? 'Guardando…' : 'Crear shipper'}
+              Crear shipper
             </Button>
           </div>
         }
@@ -342,10 +344,10 @@ export default function ShipperNewPage() {
           className="max-w-4xl mx-auto p-6 space-y-6 pb-32"
         >
           {/* Banner de progreso */}
-          <div className="rounded-xl border border-border bg-card/50 p-4">
+          <div className="rounded-xl border border-border bg-card/50 p-4 shadow-soft">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent">
                   <Building2 className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
@@ -359,9 +361,9 @@ export default function ShipperNewPage() {
                 variant="outline"
                 className={
                   progreso === 100
-                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                    ? 'bg-success/15 text-success border-success/30'
                     : progreso >= 33
-                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                    ? 'bg-warning/15 text-warning border-warning/30'
                     : ''
                 }
               >
@@ -370,8 +372,8 @@ export default function ShipperNewPage() {
             </div>
             <div className="mt-3 h-1 rounded-full bg-muted overflow-hidden">
               <div
-                className={`h-full transition-all ${
-                  progreso === 100 ? 'bg-emerald-500' : 'bg-primary'
+                className={`h-full transition-all ease-claude ${
+                  progreso === 100 ? 'bg-success' : 'bg-accent'
                 }`}
                 style={{ width: `${progreso}%` }}
               />
@@ -382,7 +384,7 @@ export default function ShipperNewPage() {
           <SectionCard icon={Info} iconColor="blue" title="Datos del shipper">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Nombre <span className="text-destructive">*</span>
                   <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
                     {form.nombre.length}/100
@@ -406,7 +408,7 @@ export default function ShipperNewPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Código interno
                   <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
                     {form.codigoInterno.length}/30
@@ -453,7 +455,7 @@ export default function ShipperNewPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label variant="caption" className="flex items-center gap-1">
                   Nombre del encargado
                   <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
                     {form.nombreEncargado.length}/80
@@ -484,8 +486,8 @@ export default function ShipperNewPage() {
           >
             <div className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Star className="h-3 w-3 text-amber-500" />
+                <Label variant="caption" className="flex items-center gap-1.5">
+                  <Star className="h-3 w-3 text-warning" />
                   Teléfono principal
                 </Label>
                 <Input
@@ -500,7 +502,7 @@ export default function ShipperNewPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Label variant="caption">
                   Otros teléfonos (opcional)
                 </Label>
                 <div className="flex flex-wrap gap-2">
@@ -587,7 +589,7 @@ export default function ShipperNewPage() {
             <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Label variant="caption">
                     País
                   </Label>
                   <Input
@@ -598,7 +600,7 @@ export default function ShipperNewPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Label variant="caption">
                     Ciudad
                   </Label>
                   <Input
@@ -609,7 +611,7 @@ export default function ShipperNewPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Label variant="caption">
                     Cantón
                   </Label>
                   <Input
@@ -620,7 +622,7 @@ export default function ShipperNewPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Label variant="caption">
                     Referencia
                   </Label>
                   <Input
@@ -631,7 +633,7 @@ export default function ShipperNewPage() {
                   />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Label variant="caption" className="flex items-center gap-1">
                     Dirección <span className="text-destructive">*</span>
                   </Label>
                   <Input
@@ -710,12 +712,12 @@ export default function ShipperNewPage() {
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-3 px-6 py-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
               {isValid ? (
-                <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1.5 text-success">
                   <CheckCircle2 className="h-4 w-4" />
                   <span className="truncate">Listo para crear el shipper</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center gap-1.5 text-warning">
                   <AlertCircle className="h-4 w-4" />
                   <span className="truncate">Falta el nombre del shipper</span>
                 </span>
@@ -733,11 +735,13 @@ export default function ShipperNewPage() {
               <Button
                 size="sm"
                 onClick={() => submit()}
-                disabled={submitting || !isValid}
+                disabled={!isValid}
+                loading={submitting}
+                loadingText="Guardando…"
                 className="gap-1.5 min-w-[120px]"
               >
                 <Save className="h-3.5 w-3.5" />
-                {submitting ? 'Guardando…' : 'Crear shipper'}
+                Crear shipper
               </Button>
             </div>
           </div>

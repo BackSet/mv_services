@@ -19,6 +19,7 @@ import {
   XCircle,
   ShieldCheck,
   AtSign,
+  UserPlus,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
@@ -29,7 +30,7 @@ import type { NotionTableAction, SortState } from '@/components/notion/NotionTab
 import EmptyState from '@/components/notion/EmptyState';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { ListPagination } from '@/components/list/ListPagination';
-import { LoadingState } from '@/components/states/LoadingState';
+import { TableSkeleton, PaginationSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -73,9 +74,9 @@ function readPrefs(): Prefs {
 
 function rolBadgeClass(rol: string | null | undefined): string {
   const r = (rol ?? '').toUpperCase();
-  if (r.includes('ADMIN')) return 'bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-500/30';
-  if (r.includes('OPERA')) return 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/30';
-  if (r.includes('SHIPPER')) return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30';
+  if (r.includes('ADMIN')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
+  if (r.includes('OPERA')) return 'bg-info/15 text-info border-info/30';
+  if (r.includes('SHIPPER')) return 'bg-accent-soft text-accent-soft-foreground border-accent/30';
   return 'bg-muted/40 text-muted-foreground border-border/50';
 }
 
@@ -256,16 +257,32 @@ export default function UsuariosListPage() {
     [isSelf],
   );
 
-  const rowActions = (r: Usuario): NotionTableAction<Usuario>[] => [
-    { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/usuarios/${r.id}`) },
-    { label: 'Editar', icon: Pencil, onClick: () => navigate(`/usuarios/${r.id}/edit`) },
-    {
+  const rowActions = (r: Usuario): NotionTableAction<Usuario>[] => {
+    const actions: NotionTableAction<Usuario>[] = [
+      { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/usuarios/${r.id}`) },
+      { label: 'Editar', icon: Pencil, onClick: () => navigate(`/usuarios/${r.id}/edit`) },
+    ];
+    if (r.shipper?.id) {
+      actions.push({
+        label: 'Ir al shipper',
+        icon: Truck,
+        onClick: () => navigate(`/shippers/${r.shipper!.id}`),
+      });
+    } else {
+      actions.push({
+        label: 'Asignar shipper',
+        icon: UserPlus,
+        onClick: () => navigate(`/usuarios/${r.id}/edit#shipper`),
+      });
+    }
+    actions.push({
       label: isSelf(r) ? 'No puedes eliminarte' : 'Eliminar',
       icon: Trash2,
       onClick: () => requestDelete(r),
       destructive: true,
-    },
-  ];
+    });
+    return actions;
+  };
 
   const usuarioToDelete = deleteId != null ? rows?.find((u) => u.id === deleteId) : null;
 
@@ -403,9 +420,9 @@ export default function UsuariosListPage() {
                 key={t.key}
                 type="button"
                 onClick={() => { setTab(t.key); setPage(0); }}
-                className={`relative px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2 whitespace-nowrap ${
+                className={`relative px-3 py-2 text-xs font-medium transition-colors ease-claude -mb-px border-b-2 whitespace-nowrap ${
                   tab === t.key
-                    ? 'text-foreground border-primary'
+                    ? 'text-foreground border-accent'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
               >
@@ -419,7 +436,7 @@ export default function UsuariosListPage() {
           <ListToolbar
             search={search}
             onSearchChange={(v) => { setSearch(v); setPage(0); }}
-            searchPlaceholder="Buscar por usuario, email, rol o shipper…"
+            searchPlaceholder="Buscar por usuario, email, rol, shipper o código…"
             filters={
               rolesUnicos.length > 0 ? (
                 <label className="flex items-center gap-1.5 text-xs">
@@ -482,7 +499,10 @@ export default function UsuariosListPage() {
           />
 
           {loading ? (
-            <LoadingState label="Cargando usuarios..." />
+            <>
+              <TableSkeleton rows={pageSize} columns={6} density={density} />
+              <PaginationSkeleton />
+            </>
           ) : error ? (
             <ErrorState
               title="Error al cargar usuarios"
@@ -523,7 +543,7 @@ export default function UsuariosListPage() {
                           <span
                             className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
                               self
-                                ? 'bg-primary/15 text-primary'
+                                ? 'bg-accent-soft text-accent-soft-foreground'
                                 : 'bg-muted text-muted-foreground'
                             }`}
                             aria-hidden
@@ -531,16 +551,28 @@ export default function UsuariosListPage() {
                             {getInitials(r.username || r.email || '?')}
                           </span>
                           <div className="flex flex-col leading-tight min-w-0">
-                            <span className="flex items-center gap-1.5 min-w-0">
+                            <span className="group/copy flex items-center gap-1.5 min-w-0">
                               <span className="truncate">{r.username}</span>
                               {self && (
                                 <Badge
-                                  variant="outline"
-                                  className="h-4 px-1.5 text-[9px] bg-primary/10 text-primary border-primary/30 shrink-0"
+                                  variant="brand"
+                                  className="h-4 px-1.5 text-[9px] shrink-0"
                                 >
                                   Tú
                                 </Badge>
                               )}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copiarTexto(r.username, 'Usuario');
+                                }}
+                                className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                                title="Copiar nombre de usuario"
+                                aria-label="Copiar usuario"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
                             </span>
                             <span className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
                               <AtSign className="h-2.5 w-2.5" />
@@ -564,7 +596,7 @@ export default function UsuariosListPage() {
                             e.stopPropagation();
                             copiarTexto(r.email, 'Email');
                           }}
-                          className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                          className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                           title="Copiar email"
                           aria-label="Copiar email"
                         >
@@ -588,48 +620,81 @@ export default function UsuariosListPage() {
                       ),
                   },
                   {
-                    header: 'SHIPPER',
-                    sortKey: 'shipper',
-                    cell: (r) =>
-                      r.shipper?.nombre ? (
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Truck className="h-3 w-3 text-orange-500 shrink-0" />
-                          <span className="text-xs truncate">{r.shipper.nombre}</span>
-                          {r.shipper.codigoInterno && (
-                            <Badge
-                              variant="outline"
-                              className="h-4 px-1.5 text-[9px] font-mono shrink-0"
-                            >
-                              {r.shipper.codigoInterno}
-                            </Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      ),
-                  },
-                  {
                     header: 'ESTADO',
                     sortKey: 'estado',
                     className: 'w-[110px]',
                     cell: (r) =>
                       r.activo ? (
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 gap-1"
-                        >
+                        <Badge variant="success" className="gap-1">
                           <CheckCircle2 className="h-2.5 w-2.5" />
                           Activo
                         </Badge>
                       ) : (
-                        <Badge
-                          variant="outline"
-                          className="bg-muted/40 text-muted-foreground border-border/50 gap-1"
-                        >
+                        <Badge variant="secondary" className="gap-1">
                           <XCircle className="h-2.5 w-2.5" />
                           Inactivo
                         </Badge>
                       ),
+                  },
+                  {
+                    header: 'SHIPPER',
+                    sortKey: 'shipper',
+                    cell: (r) => {
+                      if (!r.shipper?.nombre) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/usuarios/${r.id}/edit#shipper`);
+                            }}
+                            className="text-xs text-muted-foreground hover:text-accent hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 rounded inline-flex items-center gap-1"
+                            title="Asignar shipper a este usuario"
+                          >
+                            <UserPlus className="h-3 w-3" />
+                            Asignar
+                          </button>
+                        );
+                      }
+                      return (
+                        <div className="group/copy flex items-center gap-1.5 min-w-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/shippers/${r.shipper!.id}`);
+                            }}
+                            className="inline-flex items-center gap-1.5 min-w-0 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-accent/40 hover:text-accent transition-colors"
+                            title={`Ver ${r.shipper.nombre}`}
+                          >
+                            <Truck className="h-3 w-3 text-accent shrink-0" />
+                            <span className="text-xs truncate">{r.shipper.nombre}</span>
+                          </button>
+                          {r.shipper.codigoInterno && (
+                            <>
+                              <Badge
+                                variant="outline"
+                                className="h-4 px-1.5 text-[9px] font-mono shrink-0"
+                              >
+                                {r.shipper.codigoInterno}
+                              </Badge>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copiarTexto(r.shipper!.codigoInterno!, 'Código de shipper');
+                                }}
+                                className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                                title="Copiar código de shipper"
+                                aria-label="Copiar código"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      );
+                    },
                   },
                   {
                     header: 'ID',

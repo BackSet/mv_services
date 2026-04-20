@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useMe } from '@/hooks/useMe';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ProtectedRoute = ({
     children,
@@ -22,7 +23,13 @@ const ProtectedRoute = ({
 
     if (needsRoleCheck || needsPermissionCheck) {
         if (loading) {
-            return <div className="p-6 text-sm text-muted-foreground">Cargando…</div>;
+            return (
+                <div role="status" aria-label="Verificando permisos" className="p-6 space-y-3">
+                    <Skeleton className="h-6 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                    <Skeleton className="h-4 w-56" />
+                </div>
+            );
         }
         const role = me?.rol ?? null;
         const permisos = me?.permisos ?? [];

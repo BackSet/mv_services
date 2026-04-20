@@ -46,7 +46,7 @@ import {
 import { listRoles, type Rol } from '@/services/roles.service';
 import { listShippers, type Shipper } from '@/services/shippers.service';
 import { ShipperCombobox } from '@/components/shipper/ShipperCombobox';
-import { LoadingState } from '@/components/states/LoadingState';
+import { FormPageSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import { useMe } from '@/hooks/useMe';
@@ -344,11 +344,11 @@ export default function UsuarioEditPage() {
 
   const strengthBar = (() => {
     const colors: Record<string, string> = {
-      red: 'bg-red-500',
-      orange: 'bg-orange-500',
-      amber: 'bg-amber-500',
-      emerald: 'bg-emerald-500',
-      green: 'bg-green-500',
+      red: 'bg-destructive',
+      orange: 'bg-accent',
+      amber: 'bg-warning',
+      emerald: 'bg-success',
+      green: 'bg-success',
     };
     return colors[passwordStrength.color];
   })();
@@ -417,7 +417,7 @@ export default function UsuarioEditPage() {
         />
 
         {loading ? (
-          <LoadingState label="Cargando usuario..." />
+          <FormPageSkeleton sections={[4, 3]} />
         ) : loadError || !original ? (
           <ErrorState
             title="No se pudo cargar el usuario"
@@ -436,14 +436,14 @@ export default function UsuarioEditPage() {
                 className={cn(
                   'rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3',
                   isSelf
-                    ? 'bg-primary/5 border-primary/30'
+                    ? 'bg-accent-soft/60 border-accent/30'
                     : 'bg-card/50 border-border',
                 )}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-lg',
-                    isSelf ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
+                    isSelf ? 'bg-accent-soft text-accent-soft-foreground' : 'bg-muted text-muted-foreground',
                   )}>
                     <User className="h-5 w-5" />
                   </span>
@@ -454,7 +454,7 @@ export default function UsuarioEditPage() {
                       </p>
                       <Badge variant="outline" className="text-[10px] font-mono">#{original.id}</Badge>
                       {isSelf && (
-                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                        <Badge variant="brand" className="text-[10px]">
                           Tu cuenta
                         </Badge>
                       )}
@@ -463,7 +463,7 @@ export default function UsuarioEditPage() {
                   </div>
                 </div>
                 {isDirty && (
-                  <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 shrink-0">
+                  <Badge variant="warning" className="gap-1 shrink-0">
                     <AlertCircle className="h-3 w-3" />
                     Cambios sin guardar
                   </Badge>
@@ -472,7 +472,7 @@ export default function UsuarioEditPage() {
 
               {/* Aviso si auto-edición */}
               {isSelf && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+                <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-xs text-warning flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Estás editando tu propia cuenta.</p>
@@ -487,9 +487,9 @@ export default function UsuarioEditPage() {
               <SectionCard icon={Info} iconColor="blue" title="Cuenta">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Label variant="caption" className="flex items-center gap-1">
                       Usuario <span className="text-destructive">*</span>
-                      <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                      <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                         {form.username.length}/50
                       </span>
                     </Label>
@@ -516,7 +516,7 @@ export default function UsuarioEditPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Label variant="caption" className="flex items-center gap-1">
                       Email <span className="text-destructive">*</span>
                     </Label>
                     <div className="relative">
@@ -542,12 +542,12 @@ export default function UsuarioEditPage() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Label variant="caption" className="flex items-center gap-1">
                       Nueva contraseña
-                      <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                      <span className="ml-2 text-[10px] font-normal text-muted-foreground normal-case tracking-normal">
                         opcional · déjalo vacío para no cambiar
                       </span>
-                      <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal">
+                      <span className="ml-auto text-[10px] text-muted-foreground tabular-nums font-normal normal-case tracking-normal">
                         {form.password.length} caracteres
                       </span>
                     </Label>
@@ -569,7 +569,7 @@ export default function UsuarioEditPage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword((v) => !v)}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent flex items-center justify-center transition-colors"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors"
                           title={showPassword ? 'Ocultar' : 'Mostrar'}
                           tabIndex={-1}
                         >
@@ -618,7 +618,7 @@ export default function UsuarioEditPage() {
                         <p className="text-[11px] text-muted-foreground flex items-center justify-between">
                           <span>Fortaleza: <span className="font-medium text-foreground">{passwordStrength.label}</span></span>
                           {passwordStrength.score >= 3 && (
-                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <span className="inline-flex items-center gap-1 text-success">
                               <CheckCircle2 className="h-3 w-3" />
                               Aceptable
                             </span>
@@ -641,7 +641,7 @@ export default function UsuarioEditPage() {
               <SectionCard icon={Shield} iconColor="green" title="Permisos y estado">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Label variant="caption" className="flex items-center gap-1">
                       Rol <span className="text-destructive">*</span>
                     </Label>
                     <Select
@@ -671,18 +671,16 @@ export default function UsuarioEditPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Estado de la cuenta
-                    </Label>
+                    <Label variant="caption">Estado de la cuenta</Label>
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, activo: !form.activo })}
                       disabled={isSelf && form.activo}
                       title={isSelf && form.activo ? 'No puedes desactivar tu propia cuenta desde aquí sin confirmar' : undefined}
                       className={cn(
-                        'h-9 w-full rounded-md border px-3 flex items-center justify-between transition-colors',
+                        'h-9 w-full rounded-md border px-3 flex items-center justify-between transition-colors ease-claude',
                         form.activo
-                          ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400'
+                          ? 'border-success/30 bg-success/5 text-success'
                           : 'border-border bg-muted/30 text-muted-foreground',
                         isSelf && form.activo && 'opacity-90',
                       )}
@@ -703,7 +701,7 @@ export default function UsuarioEditPage() {
                       <span
                         className={cn(
                           'h-4 w-7 rounded-full transition-colors relative',
-                          form.activo ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+                          form.activo ? 'bg-success' : 'bg-muted-foreground/40',
                         )}
                       >
                         <span
@@ -715,7 +713,7 @@ export default function UsuarioEditPage() {
                       </span>
                     </button>
                     {isSelf && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <p className="text-[11px] text-warning flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
                         Si te desactivas, perderás el acceso al sistema.
                       </p>
@@ -731,7 +729,7 @@ export default function UsuarioEditPage() {
                 title="Shipper asociado"
                 right={
                   form.shipperId ? (
-                    <Badge variant="outline" className="text-[10px] bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30">
+                    <Badge variant="brand" className="text-[10px]">
                       Vinculado
                     </Badge>
                   ) : (
@@ -740,9 +738,7 @@ export default function UsuarioEditPage() {
                 }
               >
                 <div className="space-y-2">
-                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Shipper
-                  </Label>
+                  <Label variant="caption">Shipper</Label>
                   <ShipperCombobox
                     shippers={shippers}
                     value={form.shipperId === '' ? '' : Number(form.shipperId)}
@@ -773,12 +769,12 @@ export default function UsuarioEditPage() {
                       <span className="truncate">Sin cambios pendientes</span>
                     </span>
                   ) : isValid ? (
-                    <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1.5 text-success">
                       <CheckCircle2 className="h-4 w-4" />
                       <span className="truncate">Listo para guardar cambios</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1.5 text-warning">
                       <AlertCircle className="h-4 w-4" />
                       <span className="truncate">
                         {Object.keys(errors).length} campo{Object.keys(errors).length === 1 ? '' : 's'} por revisar

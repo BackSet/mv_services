@@ -332,14 +332,14 @@ export default function PaqueteNewPage() {
             <Button
               size="sm"
               onClick={() => submit()}
-              disabled={submitting || !isValid}
-              className="gap-1.5 h-8 shadow-sm"
+              disabled={!isValid}
+              loading={submitting}
+              loadingText="Guardando…"
+              className="gap-1.5 h-8 shadow-soft"
               title="Guardar (Ctrl+S)"
             >
-              {submitting
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Save className="h-3.5 w-3.5" />}
-              {submitting ? 'Guardando…' : 'Crear paquete'}
+              <Save className="h-3.5 w-3.5" />
+              Crear paquete
             </Button>
           </div>
         }
@@ -363,8 +363,8 @@ export default function PaqueteNewPage() {
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn(
-                  'h-full rounded-full transition-all',
-                  progress === 100 ? 'bg-emerald-500' : 'bg-primary',
+                  'h-full rounded-full transition-all ease-claude',
+                  progress === 100 ? 'bg-success' : 'bg-accent',
                 )}
                 style={{ width: `${progress}%` }}
               />
@@ -380,7 +380,7 @@ export default function PaqueteNewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5 md:col-span-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="numeroGuia" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Label htmlFor="numeroGuia" variant="form" className="flex items-center gap-1">
                     Número de guía <span className="text-destructive">*</span>
                   </Label>
                   <div className="flex items-center gap-1">
@@ -425,7 +425,7 @@ export default function PaqueteNewPage() {
                       : duplicate.existing
                         ? <AlertCircle className="h-4 w-4 text-destructive" />
                         : form.numeroGuia.trim().length >= 3
-                          ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          ? <CheckCircle2 className="h-4 w-4 text-success" />
                           : null}
                   </span>
                 </div>
@@ -453,7 +453,7 @@ export default function PaqueteNewPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="destinatario" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label htmlFor="destinatario" variant="form" className="flex items-center gap-1">
                   Destinatario <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -474,8 +474,8 @@ export default function PaqueteNewPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ref" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Ref <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
+                <Label htmlFor="ref" variant="form">
+                  Ref <span className="text-muted-foreground font-normal">(opcional)</span>
                 </Label>
                 <Input
                   id="ref"
@@ -488,7 +488,7 @@ export default function PaqueteNewPage() {
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="contenido" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Label htmlFor="contenido" variant="form" className="flex items-center gap-1">
                   Contenido <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -518,7 +518,7 @@ export default function PaqueteNewPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <Label htmlFor="pesoLbs" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Label htmlFor="pesoLbs" variant="form">
                   Peso (lbs) <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
@@ -545,8 +545,8 @@ export default function PaqueteNewPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Equivalencia (kgs) <span className="text-muted-foreground/60 normal-case font-normal">(automática)</span>
+                <Label variant="form">
+                  Equivalencia (kgs) <span className="text-muted-foreground font-normal">(automática)</span>
                 </Label>
                 <div className="relative h-9 rounded-md border border-dashed border-border bg-muted/30 flex items-center justify-between px-3">
                   <span className="tabular-nums text-sm">
@@ -572,8 +572,8 @@ export default function PaqueteNewPage() {
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <Label htmlFor="shipper" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Shipper <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
+                  <Label htmlFor="shipper" variant="form">
+                    Shipper <span className="text-muted-foreground font-normal">(opcional)</span>
                   </Label>
                   <ShipperCombobox
                     shippers={shippers}
@@ -638,13 +638,13 @@ export default function PaqueteNewPage() {
               <Button
                 size="sm"
                 onClick={() => submit()}
-                disabled={submitting || !isValid}
-                className="gap-1.5 shadow-sm"
+                disabled={!isValid}
+                loading={submitting}
+                loadingText="Guardando…"
+                className="gap-1.5 shadow-soft"
               >
-                {submitting
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <Save className="h-3.5 w-3.5" />}
-                {submitting ? 'Guardando…' : (createAnother ? 'Crear y otro' : 'Crear paquete')}
+                <Save className="h-3.5 w-3.5" />
+                {createAnother ? 'Crear y otro' : 'Crear paquete'}
               </Button>
             </div>
           </div>

@@ -43,6 +43,8 @@ export default {
                 accent: {
                     DEFAULT: "hsl(var(--accent))",
                     foreground: "hsl(var(--accent-foreground))",
+                    soft: "hsl(var(--accent-soft))",
+                    "soft-foreground": "hsl(var(--accent-soft-foreground))",
                 },
                 popover: {
                     DEFAULT: "hsl(var(--popover))",
@@ -68,11 +70,22 @@ export default {
             },
             fontFamily: {
                 serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+                sans: ['"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
             },
             borderRadius: {
                 lg: `var(--radius)`,
                 md: `calc(var(--radius) - 2px)`,
                 sm: "calc(var(--radius) - 4px)",
+                xl: "calc(var(--radius) + 0.25rem)",
+                "2xl": "calc(var(--radius) + 0.5rem)",
+            },
+            boxShadow: {
+                card: "var(--shadow-card)",
+                popover: "var(--shadow-popover)",
+                soft: "var(--shadow-soft)",
+            },
+            transitionTimingFunction: {
+                claude: "cubic-bezier(.16,1,.3,1)",
             },
         },
     },

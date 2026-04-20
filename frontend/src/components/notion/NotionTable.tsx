@@ -54,8 +54,8 @@ export default function NotionTable<T>({
   sort?: SortState;
   onSortChange?: (next: SortState) => void;
 }) {
-  const cellPadding = density === 'compact' ? 'px-3 py-1.5' : 'px-3 py-2.5';
-  const headerPadding = density === 'compact' ? 'h-9 px-3' : 'h-10 px-3';
+  const cellPadding = density === 'compact' ? 'px-4 py-2' : 'px-4 py-3.5';
+  const headerPadding = density === 'compact' ? 'h-10 px-4' : 'h-11 px-4';
   const selectedSet = selectedIds ?? new Set<string | number>();
   const toggleRow = (id: string | number) => {
     if (!onSelectionChange) return;
@@ -73,18 +73,18 @@ export default function NotionTable<T>({
   const hasActions = Boolean(rowActions);
 
   return (
-    <div className={cn('w-full border border-border/40 rounded-2xl overflow-hidden', className)}>
+    <div className={cn('w-full overflow-hidden tabular-nums', className)}>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-[13.5px] border-collapse">
           <thead>
-            <tr>
+            <tr className="bg-transparent">
               {showCheckbox && (
-                <th className={cn('w-10 text-left border-b border-border/30 bg-muted/20', headerPadding)}>
+                <th className={cn('w-10 text-left border-b border-border/60', headerPadding)}>
                   <input
                     type="checkbox"
                     checked={rows.length > 0 && selectedSet.size === rows.length}
                     onChange={toggleAll}
-                    className="rounded border-input"
+                    className="h-4 w-4 rounded border-input accent-accent"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </th>
@@ -102,22 +102,22 @@ export default function NotionTable<T>({
                   <th
                     key={idx}
                     className={cn(
-                      'text-left text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/30 bg-muted/20',
+                      'text-left text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em] border-b border-border/60',
                       headerPadding,
                       c.className,
                       isSortable && 'cursor-pointer select-none hover:text-foreground transition-colors'
                     )}
                     onClick={isSortable ? handleSort : undefined}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {c.header}
                       {isSortable && (
                         isActive ? (
                           sort?.dir === 'asc'
-                            ? <ArrowUp className="h-3 w-3 text-primary" />
-                            : <ArrowDown className="h-3 w-3 text-primary" />
+                            ? <ArrowUp className="h-3 w-3 text-accent" />
+                            : <ArrowDown className="h-3 w-3 text-accent" />
                         ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                          <ArrowUpDown className="h-3 w-3 opacity-30" />
                         )
                       )}
                     </div>
@@ -125,8 +125,8 @@ export default function NotionTable<T>({
                 );
               })}
               {hasActions && (
-                <th className={cn('w-[80px] text-right text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/30 bg-muted/20', headerPadding)}>
-                  ACCIONES
+                <th className={cn('w-[72px] text-right text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em] border-b border-border/60', headerPadding)}>
+                  <span className="sr-only">Acciones</span>
                 </th>
               )}
             </tr>
@@ -134,12 +134,14 @@ export default function NotionTable<T>({
           <tbody>
             {rows.map((row) => {
               const id = rowKey(row);
+              const isSelected = selectedSet.has(id);
               return (
                 <tr
                   key={id}
                   className={cn(
-                    'group border-b border-border/30 last:border-b-0 transition-colors',
-                    onRowClick ? 'cursor-pointer hover:bg-muted/20' : 'hover:bg-muted/20'
+                    'group border-b border-border/40 last:border-b-0 transition-colors duration-150',
+                    onRowClick ? 'cursor-pointer hover:bg-muted/40' : 'hover:bg-muted/40',
+                    isSelected && 'bg-accent-soft/40',
                   )}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
@@ -147,14 +149,14 @@ export default function NotionTable<T>({
                     <td className={cn('w-10 align-middle', cellPadding)} onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
-                        checked={selectedSet.has(id)}
+                        checked={isSelected}
                         onChange={() => toggleRow(id)}
-                        className="rounded border-input"
+                        className="h-4 w-4 rounded border-input accent-accent"
                       />
                     </td>
                   )}
                   {columns.map((c, idx) => (
-                    <td key={idx} className={cn('align-middle', cellPadding, c.className)}>
+                    <td key={idx} className={cn('align-middle text-foreground', cellPadding, c.className)}>
                       <div className="truncate">
                         {c.cell(row)}
                       </div>
@@ -162,24 +164,22 @@ export default function NotionTable<T>({
                   ))}
                   {hasActions && rowActions && (
                     <td
-                      className={cn('w-[80px] align-middle text-right', cellPadding)}
+                      className={cn('w-[72px] align-middle text-right', cellPadding)}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-60 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                            size="icon-sm"
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
                             aria-label="Acciones"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/50">
-                          <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                            ACCIONES
-                          </DropdownMenuLabel>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           {rowActions(row).map((action, i) => {
                             const Icon = action.icon;

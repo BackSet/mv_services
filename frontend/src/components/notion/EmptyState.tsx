@@ -16,13 +16,22 @@ export default function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-8 py-12 text-center', className)}>
-      <div className="h-11 w-11 rounded-full bg-muted/40 flex items-center justify-center text-muted-foreground">
-        {icon ?? <Inbox className="h-5 w-5" />}
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card/50 px-10 py-16 text-center',
+        className,
+      )}
+    >
+      <div className="h-14 w-14 rounded-2xl bg-accent-soft flex items-center justify-center text-accent">
+        {icon ?? <Inbox className="h-6 w-6" />}
       </div>
-      <div className="mt-3 text-sm font-medium text-foreground">{title}</div>
-      {description ? <div className="mt-1 text-xs text-muted-foreground max-w-sm leading-relaxed">{description}</div> : null}
-      {action ? <div className="mt-4">{action}</div> : null}
+      <div className="mt-5 font-serif text-xl tracking-tight text-foreground">{title}</div>
+      {description ? (
+        <div className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
+          {description}
+        </div>
+      ) : null}
+      {action ? <div className="mt-6">{action}</div> : null}
     </div>
   );
 }

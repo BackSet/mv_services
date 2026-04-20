@@ -18,6 +18,7 @@ import {
   FilterX,
   Rows3,
   AlignJustify,
+  ExternalLink,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
@@ -28,12 +29,13 @@ import type { NotionTableAction, SortState } from '@/components/notion/NotionTab
 import EmptyState from '@/components/notion/EmptyState';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { ListPagination } from '@/components/list/ListPagination';
-import { LoadingState } from '@/components/states/LoadingState';
+import { TableSkeleton, PaginationSkeleton } from '@/components/skeletons';
 import { ErrorState } from '@/components/states/ErrorState';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useShippersList } from '@/hooks/useShippers';
 import { deleteShipper, type Shipper } from '@/services/shippers.service';
+import { getUsuarioByShipperId } from '@/services/usuarios.service';
 import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 
 // =============================================================================
@@ -238,11 +240,64 @@ export default function ShippersListPage() {
     }
   }, [refresh]);
 
-  const rowActions = (r: Shipper): NotionTableAction<Shipper>[] => [
-    { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/shippers/${r.id}`) },
-    { label: 'Editar', icon: Pencil, onClick: () => navigate(`/shippers/${r.id}/edit`) },
-    { label: 'Eliminar', icon: Trash2, onClick: () => setDeleteId(r.id), destructive: true },
-  ];
+  const verUsuarioVinculado = async (r: Shipper) => {
+    const tid = toast.loading('Buscando usuario vinculado…');
+    try {
+      const u = await getUsuarioByShipperId(r.id);
+      toast.dismiss(tid);
+      if (u?.id) {
+        navigate(`/usuarios/${u.id}`);
+      } else {
+        toast.info(`${r.nombre} no tiene un usuario vinculado.`);
+      }
+    } catch (e) {
+      toast.dismiss(tid);
+      console.error('Error buscando usuario vinculado', e);
+      toast.error('No se pudo consultar el usuario vinculado.');
+    }
+  };
+
+  const copiarTodosLosTelefonos = async (r: Shipper) => {
+    const tels = r.telefonos ?? [];
+    if (tels.length === 0) {
+      toast.info('Este shipper no tiene teléfonos registrados.');
+      return;
+    }
+    const linea = tels
+      .map((t) => {
+        const etiqueta = t.etiqueta ? ` (${t.etiqueta})` : '';
+        const principal = t.esPrincipal ? ' ★' : '';
+        return `${t.numero}${etiqueta}${principal}`;
+      })
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(linea);
+      toast.success(`Se copiaron ${tels.length} teléfono${tels.length !== 1 ? 's' : ''} al portapapeles.`);
+    } catch {
+      toast.error('No se pudo copiar al portapapeles.');
+    }
+  };
+
+  const rowActions = (r: Shipper): NotionTableAction<Shipper>[] => {
+    const actions: NotionTableAction<Shipper>[] = [
+      { label: 'Ver detalles', icon: Eye, onClick: () => navigate(`/shippers/${r.id}`) },
+      { label: 'Editar', icon: Pencil, onClick: () => navigate(`/shippers/${r.id}/edit`) },
+      {
+        label: 'Ver usuario vinculado',
+        icon: ExternalLink,
+        onClick: () => { void verUsuarioVinculado(r); },
+      },
+    ];
+    if ((r.telefonos?.length ?? 0) > 0) {
+      actions.push({
+        label: 'Copiar todos los teléfonos',
+        icon: Phone,
+        onClick: () => { void copiarTodosLosTelefonos(r); },
+      });
+    }
+    actions.push({ label: 'Eliminar', icon: Trash2, onClick: () => setDeleteId(r.id), destructive: true });
+    return actions;
+  };
 
   const shipperToDelete = deleteId != null ? rows?.find((s) => s.id === deleteId) : null;
 
@@ -380,9 +435,9 @@ export default function ShippersListPage() {
                 key={t.key}
                 type="button"
                 onClick={() => { setTab(t.key); setPage(0); }}
-                className={`relative px-3 py-2 text-xs font-medium transition-colors -mb-px border-b-2 whitespace-nowrap ${
+                className={`relative px-3 py-2 text-xs font-medium transition-colors ease-claude -mb-px border-b-2 whitespace-nowrap ${
                   tab === t.key
-                    ? 'text-foreground border-primary'
+                    ? 'text-foreground border-accent'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
                 }`}
               >
@@ -396,7 +451,7 @@ export default function ShippersListPage() {
           <ListToolbar
             search={search}
             onSearchChange={(v) => { setSearch(v); setPage(0); }}
-            searchPlaceholder="Buscar por nombre, encargado, código, teléfono o ciudad…"
+            searchPlaceholder="Buscar por nombre, encargado, código, teléfono o ubicación…"
             actions={
               <div className="flex items-center gap-1.5">
                 {filtersActive && (
@@ -442,7 +497,10 @@ export default function ShippersListPage() {
           />
 
           {loading ? (
-            <LoadingState label="Cargando shippers..." />
+            <>
+              <TableSkeleton rows={pageSize} columns={5} density={density} />
+              <PaginationSkeleton />
+            </>
           ) : error ? (
             <ErrorState
               title="Error al cargar shippers"
@@ -506,7 +564,7 @@ export default function ShippersListPage() {
                               e.stopPropagation();
                               copiarTexto(r.codigoInterno!, 'Código');
                             }}
-                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                             title="Copiar código"
                             aria-label="Copiar código"
                           >
@@ -526,7 +584,7 @@ export default function ShippersListPage() {
                       if (!principal) return <span className="text-xs text-muted-foreground">—</span>;
                       return (
                         <div className="group/copy flex items-center gap-1.5 min-w-0">
-                          <Star className="h-3 w-3 text-amber-500 shrink-0" />
+                          <Star className="h-3 w-3 text-warning shrink-0" />
                           <span className="font-mono text-[12px] truncate">{principal}</span>
                           <button
                             type="button"
@@ -534,7 +592,7 @@ export default function ShippersListPage() {
                               e.stopPropagation();
                               copiarTexto(principal, 'Teléfono');
                             }}
-                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-accent flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
+                            className="h-5 w-5 shrink-0 rounded border border-transparent text-muted-foreground hover:text-foreground hover:border-border hover:bg-muted flex items-center justify-center opacity-0 group-hover/copy:opacity-100 focus:opacity-100 transition-all"
                             title="Copiar teléfono"
                             aria-label="Copiar teléfono"
                           >
@@ -563,7 +621,7 @@ export default function ShippersListPage() {
                       if (!principal) return <span className="text-xs text-muted-foreground">—</span>;
                       return (
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <MapPin className="h-3 w-3 text-orange-500 shrink-0" />
+                          <MapPin className="h-3 w-3 text-accent shrink-0" />
                           <span className="text-xs truncate">{principal}</span>
                           {count > 1 && (
                             <Badge

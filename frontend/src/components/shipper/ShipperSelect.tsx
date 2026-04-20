@@ -103,7 +103,7 @@ export function ShipperSelect({
           {selectedShipper && (
             <span
               role="button"
-              className="h-4 w-4 rounded-sm hover:bg-accent flex items-center justify-center"
+              className="h-4 w-4 rounded-sm hover:bg-muted flex items-center justify-center"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange('');
@@ -134,36 +134,46 @@ export function ShipperSelect({
                 No se encontró ningún shipper.
               </div>
             ) : (
-              filtered.map((s) => (
-                <div
-                  key={s.id}
-                  className={cn(
-                    'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    value === s.id && 'bg-accent/50',
-                  )}
-                  onClick={() => {
-                    onChange(s.id === value ? '' : s.id);
-                    setOpen(false);
-                    setSearch('');
-                  }}
-                >
-                  <Check
+              filtered.map((s) => {
+                const isSelected = value === s.id;
+                const cantones = getCantonesLabel(s);
+                return (
+                  <div
+                    key={s.id}
                     className={cn(
-                      'mr-2 h-4 w-4 shrink-0',
-                      value === s.id ? 'opacity-100' : 'opacity-0',
+                      'relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors',
+                      isSelected
+                        ? 'bg-accent-soft text-accent-soft-foreground hover:bg-accent-soft/80'
+                        : 'text-foreground hover:bg-muted',
                     )}
-                  />
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm truncate">{s.nombre}</span>
-                    {getCantonesLabel(s) && (
-                      <span className="text-[11px] text-muted-foreground truncate">
-                        {getCantonesLabel(s)}
-                      </span>
-                    )}
+                    onClick={() => {
+                      onChange(s.id === value ? '' : s.id);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4 shrink-0',
+                        isSelected ? 'opacity-100 text-accent' : 'opacity-0',
+                      )}
+                    />
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm truncate font-medium">{s.nombre}</span>
+                      {cantones && (
+                        <span
+                          className={cn(
+                            'text-[11px] truncate',
+                            isSelected ? 'text-current/75' : 'text-muted-foreground',
+                          )}
+                        >
+                          {cantones}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

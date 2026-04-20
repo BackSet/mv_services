@@ -1,10 +1,19 @@
 package com.mv_services.backend.controller;
 
+import com.mv_services.backend.dto.UsuarioRequest;
+import com.mv_services.backend.model.Rol;
+import com.mv_services.backend.model.Shipper;
 import com.mv_services.backend.model.Usuario;
+import com.mv_services.backend.repository.RolRepository;
+import com.mv_services.backend.repository.ShipperRepository;
 import com.mv_services.backend.repository.UsuarioRepository;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -15,9 +24,19 @@ import java.util.List;
 public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
+    private final RolRepository rolRepository;
+    private final ShipperRepository shipperRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioController(UsuarioRepository usuarioRepository) {
+    public UsuarioController(
+            UsuarioRepository usuarioRepository,
+            RolRepository rolRepository,
+            ShipperRepository shipperRepository,
+            PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
+        this.rolRepository = rolRepository;
+        this.shipperRepository = shipperRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @GetMapping
@@ -26,8 +45,24 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public Usuario createUsuario(@RequestBody Usuario usuario) {
-        return usuarioRepository.save(usuario);
+    public ResponseEntity<Usuario> createUsuario(@Valid @RequestBody UsuarioRequest body) {
+        String password = body.getPassword();
+        if (password == null || password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña es obligatoria.");
+        }
+
+        validateUniqueness(body.getUsername(), body.getEmail(), null);
+
+        Usuario usuario = new Usuario();
+        usuario.setUsername(body.getUsername().trim());
+        usuario.setEmail(body.getEmail().trim());
+        usuario.setPassword(passwordEncoder.encode(password));
+        usuario.setRol(resolveRol(body.getRol()));
+        usuario.setShipper(resolveShipper(body.getShipper()));
+        usuario.setActivo(body.isActivo());
+
+        Usuario saved = usuarioRepository.save(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @GetMapping("/{id}")
@@ -38,14 +73,24 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> updateUsuario(@PathVariable Long id, @RequestBody Usuario usuarioDetails) {
+    public ResponseEntity<Usuario> updateUsuario(
+            @PathVariable Long id,
+            @Valid @RequestBody UsuarioRequest body) {
         return usuarioRepository.findById(id)
                 .map(usuario -> {
-                    usuario.setUsername(usuarioDetails.getUsername());
-                    usuario.setEmail(usuarioDetails.getEmail());
-                    usuario.setRol(usuarioDetails.getRol());
-                    usuario.setShipper(usuarioDetails.getShipper());
-                    usuario.setActivo(usuarioDetails.isActivo());
+                    validateUniqueness(body.getUsername(), body.getEmail(), id);
+
+                    usuario.setUsername(body.getUsername().trim());
+                    usuario.setEmail(body.getEmail().trim());
+                    usuario.setRol(resolveRol(body.getRol()));
+                    usuario.setShipper(resolveShipper(body.getShipper()));
+                    usuario.setActivo(body.isActivo());
+
+                    String newPassword = body.getPassword();
+                    if (newPassword != null && !newPassword.isBlank()) {
+                        usuario.setPassword(passwordEncoder.encode(newPassword));
+                    }
+
                     return ResponseEntity.ok(usuarioRepository.save(usuario));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -66,4 +111,44 @@ public class UsuarioController {
         }
         return ResponseEntity.notFound().build();
     }
+
+    // ---------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------
+
+    private Rol resolveRol(UsuarioRequest.RolRef ref) {
+        if (ref == null || ref.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol es obligatorio.");
+        }
+        return rolRepository.findById(ref.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Rol no encontrado: " + ref.getId()));
+    }
+
+    private Shipper resolveShipper(UsuarioRequest.ShipperRef ref) {
+        if (ref == null || ref.getId() == null) {
+            return null;
+        }
+        return shipperRepository.findById(ref.getId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Shipper no encontrado: " + ref.getId()));
+    }
+
+    private void validateUniqueness(String username, String email, Long excludeId) {
+        usuarioRepository.findByUsername(username.trim()).ifPresent(existing -> {
+            if (excludeId == null || !existing.getId().equals(excludeId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "El nombre de usuario ya está en uso.");
+            }
+        });
+        usuarioRepository.findByEmail(email.trim()).ifPresent(existing -> {
+            if (excludeId == null || !existing.getId().equals(excludeId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "El correo ya está en uso.");
+            }
+        });
+    }
+
 }

@@ -74,6 +74,10 @@ import {
 import { listShippers, type Shipper } from '@/services/shippers.service';
 import { LBS_TO_KGS, formatNumber as formatPesoNumber } from '@/lib/peso';
 import { processPool } from '@/lib/concurrency';
+import {
+  CONSOLIDADO_DRAFT_KEY,
+  CONSOLIDADO_DRAFT_TIMESTAMP_KEY,
+} from '@/lib/consolidadoDraftStorage';
 import { usePaquetesList } from '@/hooks/usePaquetes';
 
 // =============================================================================
@@ -100,8 +104,6 @@ type CreationProgress = {
   message: string;
 };
 
-const DRAFT_KEY = 'mv_consolidado_draft';
-const DRAFT_TIMESTAMP_KEY = 'mv_consolidado_draft_ts';
 const BULK_SEPARATOR = /[\s,;|]+/;
 const MAX_BULK_PASTE = 200;
 const CREATE_CONCURRENCY = 4;
@@ -119,10 +121,13 @@ function paqueteEsCompleto(p: Paquete | null): boolean {
 type DraftV2 = {
   v: 2;
   items: { g: string; s?: number | null }[];
+  /** Guía de envío del consolidado (opcional). */
+  consolidadoGuia?: string;
 };
 
-function saveDraft(items: PaqueteEnLista[]) {
+function saveDraft(items: PaqueteEnLista[], consolidadoGuia: string) {
   try {
+    const guiaCons = consolidadoGuia.trim();
     const payload: DraftV2 = {
       v: 2,
       items: items.map((p) => ({
@@ -131,9 +136,10 @@ function saveDraft(items: PaqueteEnLista[]) {
           ? { s: p.shipperPreasignadoId }
           : {}),
       })),
+      ...(guiaCons ? { consolidadoGuia: guiaCons } : {}),
     };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-    localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
+    localStorage.setItem(CONSOLIDADO_DRAFT_KEY, JSON.stringify(payload));
+    localStorage.setItem(CONSOLIDADO_DRAFT_TIMESTAMP_KEY, new Date().toISOString());
   } catch {
     /* quota */
   }
@@ -141,14 +147,18 @@ function saveDraft(items: PaqueteEnLista[]) {
 
 type LoadedDraftItem = { numeroGuia: string; shipperPreasignadoId?: number | null };
 
-function loadDraft(): { items: LoadedDraftItem[]; ts: string | null } {
+function loadDraft(): {
+  items: LoadedDraftItem[];
+  ts: string | null;
+  consolidadoGuia: string;
+} {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    const ts = localStorage.getItem(DRAFT_TIMESTAMP_KEY);
-    if (!raw) return { items: [], ts: null };
+    const raw = localStorage.getItem(CONSOLIDADO_DRAFT_KEY);
+    const ts = localStorage.getItem(CONSOLIDADO_DRAFT_TIMESTAMP_KEY);
+    if (!raw) return { items: [], ts: null, consolidadoGuia: '' };
     const parsed = JSON.parse(raw) as unknown;
 
-    // v2: { v: 2, items: [{ g, s? }] }
+    // v2: { v: 2, items: [{ g, s? }], consolidadoGuia? }
     if (
       parsed &&
       typeof parsed === 'object' &&
@@ -156,14 +166,17 @@ function loadDraft(): { items: LoadedDraftItem[]; ts: string | null } {
       (parsed as { v: number }).v === 2 &&
       Array.isArray((parsed as DraftV2).items)
     ) {
-      const items = (parsed as DraftV2).items
+      const d = parsed as DraftV2;
+      const items = d.items
         .filter((it) => it && typeof it.g === 'string' && it.g.trim())
         .map((it) => ({
           numeroGuia: it.g,
           shipperPreasignadoId:
             typeof it.s === 'number' && it.s > 0 ? it.s : null,
         }));
-      return { items, ts };
+      const consolidadoGuia =
+        typeof d.consolidadoGuia === 'string' ? d.consolidadoGuia.trim() : '';
+      return { items, ts, consolidadoGuia };
     }
 
     // v1: string[]
@@ -171,17 +184,18 @@ function loadDraft(): { items: LoadedDraftItem[]; ts: string | null } {
       return {
         items: (parsed as string[]).map((g) => ({ numeroGuia: g })),
         ts,
+        consolidadoGuia: '',
       };
     }
   } catch {
     /* corrupt */
   }
-  return { items: [], ts: null };
+  return { items: [], ts: null, consolidadoGuia: '' };
 }
 
 function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
-  localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+  localStorage.removeItem(CONSOLIDADO_DRAFT_KEY);
+  localStorage.removeItem(CONSOLIDADO_DRAFT_TIMESTAMP_KEY);
 }
 
 function formatRelativeTime(iso: string | null): string | null {
@@ -381,8 +395,9 @@ export default function ConsolidadoNewPage() {
   }, []);
 
   useEffect(() => {
-    const { items, ts } = loadDraft();
+    const { items, ts, consolidadoGuia } = loadDraft();
     setDraftTimestamp(ts);
+    if (consolidadoGuia) setNumeroGuiaConsolidado(consolidadoGuia);
     if (items.length === 0) {
       setHydrating(false);
       return;
@@ -422,14 +437,15 @@ export default function ConsolidadoNewPage() {
 
   useEffect(() => {
     if (hydrating) return;
-    if (paquetesParaConsolidado.length === 0) {
+    const guiaCons = numeroGuiaConsolidado.trim();
+    if (paquetesParaConsolidado.length === 0 && !guiaCons) {
       clearDraft();
       setDraftTimestamp(null);
     } else {
-      saveDraft(paquetesParaConsolidado);
+      saveDraft(paquetesParaConsolidado, numeroGuiaConsolidado);
       setDraftTimestamp(new Date().toISOString());
     }
-  }, [paquetesParaConsolidado, hydrating]);
+  }, [paquetesParaConsolidado, numeroGuiaConsolidado, hydrating]);
 
   // ---------------------------------------------------------------------------
   // Acciones
@@ -1513,8 +1529,8 @@ export default function ConsolidadoNewPage() {
             </div>
           </SectionCard>
 
-          {/* Guía del consolidado */}
-          {paquetesParaConsolidado.length > 0 && (
+          {/* Guía del consolidado (visible con lista o si hay valor guardado en borrador) */}
+          {(paquetesParaConsolidado.length > 0 || numeroGuiaConsolidado.trim().length > 0) && (
             <SectionCard icon={Layers} iconColor="blue" title="Guía de envío del consolidado">
               <div className="grid gap-2">
                 <Label htmlFor="guia-consolidado" className="text-xs text-muted-foreground">
@@ -1528,7 +1544,8 @@ export default function ConsolidadoNewPage() {
                   className="font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Puede asignar la guía ahora o después desde el detalle del consolidado.
+                  Se guarda en el borrador junto con la lista. Puede asignarla ahora o después desde el detalle del
+                  consolidado.
                 </p>
               </div>
             </SectionCard>
@@ -1945,7 +1962,7 @@ export default function ConsolidadoNewPage() {
             if (!open) tryCloseEditDialog();
           }}
         >
-          <DialogContent className="max-w-xl rounded-2xl border-border/50 p-0 overflow-hidden">
+          <DialogContent className="flex max-h-[min(92vh,900px)] w-[calc(100vw-1.5rem)] max-w-xl min-w-0 flex-col rounded-2xl border-border/50 p-0 sm:w-full">
             {itemBeingEdited && (() => {
               const yaRegistrado = !!itemBeingEdited.paquete;
               const requiereTodo = !yaRegistrado;
@@ -1955,7 +1972,7 @@ export default function ConsolidadoNewPage() {
               return (
                 <>
                   {/* Header */}
-                  <DialogHeader className="px-6 py-4 border-b border-border/60 bg-muted/30 space-y-2">
+                  <DialogHeader className="shrink-0 px-6 py-4 border-b border-border/60 bg-muted/30 space-y-2">
                     <div className="flex items-center gap-3">
                       <div
                         className={
@@ -2039,7 +2056,7 @@ export default function ConsolidadoNewPage() {
                   </DialogHeader>
 
                   {/* Body */}
-                  <div className="px-6 py-5 space-y-5 max-h-[65vh] overflow-y-auto">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 space-y-5">
                     {/* Destinatario */}
                     <div className="space-y-3">
                       <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -2196,29 +2213,33 @@ export default function ConsolidadoNewPage() {
                   </div>
 
                   {/* Footer */}
-                  <DialogFooter className="px-6 py-3 border-t border-border/60 bg-muted/20 sm:justify-between gap-2 mt-0">
-                    <div className="flex items-center gap-3">
+                  <DialogFooter className="mt-0 grid shrink-0 grid-cols-1 gap-3 border-t border-border/60 bg-muted/20 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:gap-y-2 sm:px-6">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-3">
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={limpiarForm}
                         disabled={savingDialog}
-                        className="text-xs gap-1"
+                        className="shrink-0 text-xs gap-1"
                         title="Limpiar todos los campos"
                       >
                         <FilterX className="h-3.5 w-3.5" />
                         Limpiar
                       </Button>
-                      <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Kbd>Ctrl</Kbd>+<Kbd>↵</Kbd> guardar
+                      <span className="inline-flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                        <Kbd>Ctrl</Kbd>
+                        <span>+</span>
+                        <Kbd>↵</Kbd>
+                        <span>guardar</span>
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2 justify-self-stretch sm:justify-self-end">
                       <Button
                         variant="outline"
                         onClick={tryCloseEditDialog}
                         disabled={savingDialog}
+                        className="shrink-0"
                       >
                         Cancelar
                       </Button>
@@ -2230,10 +2251,10 @@ export default function ConsolidadoNewPage() {
                             (!formIsValid && showFormErrors) || savingDialog
                           }
                           loading={savingDialog}
-                          className="gap-1.5"
+                          className="shrink-0 gap-1.5"
                           title="Guarda y abre el siguiente paquete pendiente"
                         >
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          <ChevronRight className="h-3.5 w-3.5 shrink-0" />
                           Guardar y siguiente
                         </Button>
                       )}
@@ -2245,7 +2266,7 @@ export default function ConsolidadoNewPage() {
                         }
                         loading={savingDialog}
                         loadingText="Guardando…"
-                        className="gap-1.5 min-w-[120px]"
+                        className="shrink-0 gap-1.5"
                       >
                         <Save className="h-3.5 w-3.5" />
                         Guardar

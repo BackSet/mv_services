@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Boxes, Plus, Eye, Trash2, RefreshCcw, FilterX, Copy,
   Lock, LockOpen, Package, Weight, ListChecks, CheckCircle2,
-  AlertCircle, Rows3, Rows2, ArrowUp, Printer,
+  AlertCircle, Rows3, Rows2, ArrowUp, Printer, Pencil,
 } from 'lucide-react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { StandardPageLayout } from '@/components/layout/StandardPageLayout';
@@ -31,6 +31,7 @@ import ConfirmDeleteDialog from '@/components/notion/ConfirmDeleteDialog';
 import { useMe } from '@/hooks/useMe';
 import { printPackageLabels } from '@/lib/printLabels';
 import { processPool } from '@/lib/concurrency';
+import { hasActiveConsolidadoDraft } from '@/lib/consolidadoDraftStorage';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const STORAGE_KEY = 'consolidados:list:prefs:v1';
@@ -64,6 +65,7 @@ function isCerrado(c: Consolidado): boolean {
 
 export default function ConsolidadosListPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: rows, loading, error, refresh } = useConsolidadosList();
   const { me } = useMe();
   const permisos = me?.permisos ?? [];
@@ -78,6 +80,17 @@ export default function ConsolidadosListPage() {
   const [sort, setSort] = useState<SortState>(initialPrefs.sort ?? { key: 'id', dir: 'desc' });
   const [page, setPage] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [hasConsolidadoDraft, setHasConsolidadoDraft] = useState(hasActiveConsolidadoDraft);
+
+  useEffect(() => {
+    setHasConsolidadoDraft(hasActiveConsolidadoDraft());
+  }, [location.pathname, location.key]);
+
+  useEffect(() => {
+    const sync = () => setHasConsolidadoDraft(hasActiveConsolidadoDraft());
+    window.addEventListener('focus', sync);
+    return () => window.removeEventListener('focus', sync);
+  }, []);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -416,9 +429,23 @@ export default function ConsolidadosListPage() {
         icon={<Boxes className="h-4 w-4" />}
         actions={
           canEdit ? (
-            <Button size="sm" onClick={() => navigate('/consolidados/new')} className="gap-1.5 h-8 shadow-sm text-xs">
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              Nuevo Consolidado
+            <Button
+              size="sm"
+              onClick={() => navigate('/consolidados/new')}
+              className="gap-1.5 h-8 shadow-sm text-xs shrink-0"
+              title={hasConsolidadoDraft ? 'Retomar el borrador de nuevo consolidado' : 'Crear un nuevo consolidado'}
+            >
+              {hasConsolidadoDraft ? (
+                <>
+                  <Pencil className="h-3.5 w-3.5 shrink-0" />
+                  Seguir editando
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3.5 w-3.5 shrink-0" />
+                  Nuevo consolidado
+                </>
+              )}
             </Button>
           ) : undefined
         }
@@ -682,8 +709,30 @@ export default function ConsolidadosListPage() {
           ) : filteredRows.length === 0 && !search && estadoTab === 'todos' ? (
             <EmptyState
               title="Sin consolidados"
-              description={canEdit ? 'Cree un consolidado desde el apartado Nuevo Consolidado.' : 'No tiene consolidados con paquetes asociados.'}
-              action={canEdit ? <Button onClick={() => navigate('/consolidados/new')}>Nuevo consolidado</Button> : undefined}
+              description={
+                canEdit
+                  ? hasConsolidadoDraft
+                    ? 'Tiene un borrador sin guardar. Puede retomarlo para seguir cargando paquetes.'
+                    : 'Cree un consolidado desde el apartado Nuevo consolidado.'
+                  : 'No tiene consolidados con paquetes asociados.'
+              }
+              action={
+                canEdit ? (
+                  <Button onClick={() => navigate('/consolidados/new')} className="gap-2">
+                    {hasConsolidadoDraft ? (
+                      <>
+                        <Pencil className="h-4 w-4" />
+                        Seguir editando borrador
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Nuevo consolidado
+                      </>
+                    )}
+                  </Button>
+                ) : undefined
+              }
             />
           ) : filteredRows.length === 0 ? (
             <EmptyState

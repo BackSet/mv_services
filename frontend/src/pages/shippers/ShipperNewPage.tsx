@@ -202,12 +202,10 @@ export default function ShipperNewPage() {
     setNuevoTelefono({ ...emptyTelefono });
   }, [nuevoTelefono]);
 
-  const agregarDireccion = useCallback(() => {
+  /** Incorpora el borrador a la lista local si «Dirección» tiene texto (sin toast si está vacío). */
+  const flushDireccionDraft = useCallback(() => {
     const dir = nuevaDireccion.direccion.trim();
-    if (!dir) {
-      toast.error('La dirección es obligatoria');
-      return;
-    }
+    if (!dir) return;
     setDirecciones((prev) => [
       ...prev,
       {
@@ -220,6 +218,10 @@ export default function ShipperNewPage() {
     ]);
     setNuevaDireccion({ ...emptyDireccion });
   }, [nuevaDireccion]);
+
+  const onDireccionDraftBlur = useCallback(() => {
+    flushDireccionDraft();
+  }, [flushDireccionDraft]);
 
   const submit = useCallback(
     async (e?: React.FormEvent) => {
@@ -252,7 +254,22 @@ export default function ShipperNewPage() {
           });
         }
 
-        for (const d of direcciones) {
+        const pendingDir = nuevaDireccion.direccion.trim();
+        const direccionesFinales =
+          pendingDir
+            ? [
+                ...direcciones,
+                {
+                  pais: nuevaDireccion.pais.trim(),
+                  ciudad: nuevaDireccion.ciudad.trim(),
+                  canton: nuevaDireccion.canton.trim(),
+                  direccion: pendingDir,
+                  referencia: nuevaDireccion.referencia.trim(),
+                },
+              ]
+            : direcciones;
+
+        for (const d of direccionesFinales) {
           const direccion = (d.direccion || '').trim();
           if (!direccion) continue;
           await addShipperDireccion(shipper.id, {
@@ -265,6 +282,7 @@ export default function ShipperNewPage() {
         }
 
         toast.success(`Shipper "${shipper.nombre}" creado`);
+        setNuevaDireccion({ ...emptyDireccion });
         navigate(`/shippers/${shipper.id}`);
       } catch (err) {
         console.error('Error creando shipper', err);
@@ -273,7 +291,7 @@ export default function ShipperNewPage() {
         setSubmitting(false);
       }
     },
-    [isValid, form, telefonoPrincipal, telefonos, direcciones, navigate],
+    [isValid, form, telefonoPrincipal, telefonos, direcciones, nuevaDireccion, navigate],
   );
 
   // ---------------------------------------------------------------------------
@@ -597,6 +615,7 @@ export default function ShipperNewPage() {
                     placeholder="Ej. Ecuador"
                     value={nuevaDireccion.pais}
                     onChange={(e) => setNuevaDireccion({ ...nuevaDireccion, pais: e.target.value })}
+                    onBlur={onDireccionDraftBlur}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -608,6 +627,7 @@ export default function ShipperNewPage() {
                     placeholder="Ej. Quito"
                     value={nuevaDireccion.ciudad}
                     onChange={(e) => setNuevaDireccion({ ...nuevaDireccion, ciudad: e.target.value })}
+                    onBlur={onDireccionDraftBlur}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -619,6 +639,7 @@ export default function ShipperNewPage() {
                     placeholder="Ej. Pichincha"
                     value={nuevaDireccion.canton}
                     onChange={(e) => setNuevaDireccion({ ...nuevaDireccion, canton: e.target.value })}
+                    onBlur={onDireccionDraftBlur}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -630,6 +651,7 @@ export default function ShipperNewPage() {
                     placeholder="Punto cercano, color de casa…"
                     value={nuevaDireccion.referencia}
                     onChange={(e) => setNuevaDireccion({ ...nuevaDireccion, referencia: e.target.value })}
+                    onBlur={onDireccionDraftBlur}
                   />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
@@ -641,27 +663,20 @@ export default function ShipperNewPage() {
                     value={nuevaDireccion.direccion}
                     onChange={(e) => setNuevaDireccion({ ...nuevaDireccion, direccion: e.target.value })}
                     placeholder="Calle, número, sector…"
+                    onBlur={onDireccionDraftBlur}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        agregarDireccion();
+                        flushDireccionDraft();
                       }
                     }}
                   />
                 </div>
               </div>
-              <div className="flex items-center justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={agregarDireccion}
-                  disabled={!nuevaDireccion.direccion.trim()}
-                  className="gap-1"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Agregar dirección
-                </Button>
-              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Si completas «Dirección», al salir de cualquier campo (o al pulsar Enter ahí) se añade sola a la lista.
+                También se incluye al crear el shipper aunque no hayas salido del campo.
+              </p>
 
               {direcciones.length > 0 && (
                 <ul className="space-y-2 pt-2 border-t border-border/40">

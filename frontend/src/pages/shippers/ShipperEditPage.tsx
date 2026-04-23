@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -344,12 +344,16 @@ export default function ShipperEditPage() {
     setDirForm({ ...emptyDireccion });
   };
 
-  const saveDir = async () => {
+  const savingDirRef = useRef(false);
+
+  const saveDir = async (opts?: { silent?: boolean }) => {
     if (!id) return;
     if (!dirForm.direccion.trim()) {
-      toast.error('La dirección es obligatoria');
+      if (!opts?.silent) toast.error('La dirección es obligatoria');
       return;
     }
+    if (savingDirRef.current) return;
+    savingDirRef.current = true;
     const payload = {
       pais: dirForm.pais.trim() || null,
       ciudad: dirForm.ciudad.trim() || null,
@@ -360,16 +364,25 @@ export default function ShipperEditPage() {
     try {
       if (editingDirId === 'new') {
         await addShipperDireccion(id, payload);
-        toast.success('Dirección agregada');
+        if (!opts?.silent) toast.success('Dirección agregada');
       } else if (editingDirId) {
         await updateShipperDireccion(id, editingDirId, payload);
-        toast.success('Dirección actualizada');
+        if (!opts?.silent) toast.success('Dirección actualizada');
       }
       cancelDir();
       await refresh();
     } catch {
       toast.error('No se pudo guardar la dirección');
+    } finally {
+      savingDirRef.current = false;
     }
+  };
+
+  /** Nueva dirección: persiste al salir de cualquier campo si «Dirección» tiene texto. */
+  const blurMaybeSaveNewDir = () => {
+    if (editingDirId !== 'new') return;
+    if (!dirForm.direccion.trim()) return;
+    void saveDir({ silent: true });
   };
 
   const requestDeleteDir = (d: DireccionShipper) => {
@@ -544,6 +557,7 @@ export default function ShipperEditPage() {
             className="h-9"
             value={dirForm.pais}
             onChange={(e) => setDirForm({ ...dirForm, pais: e.target.value })}
+            onBlur={blurMaybeSaveNewDir}
           />
         </div>
         <div className="space-y-1.5">
@@ -552,6 +566,7 @@ export default function ShipperEditPage() {
             className="h-9"
             value={dirForm.ciudad}
             onChange={(e) => setDirForm({ ...dirForm, ciudad: e.target.value })}
+            onBlur={blurMaybeSaveNewDir}
           />
         </div>
         <div className="space-y-1.5">
@@ -560,6 +575,7 @@ export default function ShipperEditPage() {
             className="h-9"
             value={dirForm.canton}
             onChange={(e) => setDirForm({ ...dirForm, canton: e.target.value })}
+            onBlur={blurMaybeSaveNewDir}
           />
         </div>
         <div className="space-y-1.5">
@@ -568,6 +584,7 @@ export default function ShipperEditPage() {
             className="h-9"
             value={dirForm.referencia}
             onChange={(e) => setDirForm({ ...dirForm, referencia: e.target.value })}
+            onBlur={blurMaybeSaveNewDir}
           />
         </div>
         <div className="space-y-1.5 md:col-span-2">
@@ -576,22 +593,30 @@ export default function ShipperEditPage() {
             className="h-9"
             value={dirForm.direccion}
             onChange={(e) => setDirForm({ ...dirForm, direccion: e.target.value })}
+            onBlur={blurMaybeSaveNewDir}
           />
         </div>
       </div>
-      <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={cancelDir}>
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          onClick={saveDir}
-          disabled={!dirForm.direccion.trim()}
-          className="gap-1.5"
-        >
-          <Save className="h-3.5 w-3.5" /> Guardar
-        </Button>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {editingDirId === 'new' && (
+          <p className="text-[11px] text-muted-foreground order-2 sm:order-1">
+            Con texto en «Dirección», al salir de un campo se guarda sola en el servidor.
+          </p>
+        )}
+        <div className="flex items-center justify-end gap-2 order-1 sm:order-2">
+          <Button type="button" variant="ghost" size="sm" onClick={cancelDir}>
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void saveDir()}
+            disabled={!dirForm.direccion.trim()}
+            className="gap-1.5"
+          >
+            <Save className="h-3.5 w-3.5" /> Guardar
+          </Button>
+        </div>
       </div>
     </div>
   );

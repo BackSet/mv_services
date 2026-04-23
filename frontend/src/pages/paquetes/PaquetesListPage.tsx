@@ -386,7 +386,7 @@ export default function PaquetesListPage() {
       if (exportFormato === 'excel') {
         await exportPaquetesExcel(exportSourceList, fullName);
       } else {
-        exportPaquetesPdf(exportSourceList, fullName);
+        await exportPaquetesPdf(exportSourceList, fullName);
       }
       toast.success(`Se exportaron ${exportSourceList.length} paquete${exportSourceList.length !== 1 ? 's' : ''} (${exportFormato.toUpperCase()}).`);
       setExportDialogOpen(false);

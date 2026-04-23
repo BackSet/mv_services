@@ -240,7 +240,7 @@ export default function ShipperRegisterPage() {
 
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <BrandMark size={40} />
+            <BrandMark size={40} decorative />
             <Brand size="lg" className="text-white" />
           </Link>
           <Link
@@ -290,7 +290,7 @@ export default function ShipperRegisterPage() {
       <main className="flex-1 flex flex-col">
         <header className="flex items-center justify-between px-6 sm:px-10 lg:px-12 pt-6">
           <Link to="/" className="lg:hidden inline-flex items-center gap-2.5">
-            <BrandMark size={32} />
+            <BrandMark size={32} decorative />
             <Brand size="sm" />
           </Link>
           <Link

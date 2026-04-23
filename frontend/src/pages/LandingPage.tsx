@@ -175,7 +175,7 @@ export default function LandingPage() {
             className="group inline-flex items-center gap-2.5 transition-opacity hover:opacity-80"
             aria-label="MV Services - Inicio"
           >
-            <BrandMark size={32} />
+            <BrandMark size={32} decorative />
             <Brand size="lg" />
           </a>
 
@@ -506,7 +506,7 @@ export default function LandingPage() {
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-12 md:flex-row md:items-start md:justify-between">
           <div className="max-w-md">
             <div className="flex items-center gap-2.5">
-              <BrandMark size={32} />
+              <BrandMark size={32} decorative />
               <Brand size="md" />
             </div>
             <p className="mt-3 text-xs text-muted-foreground leading-relaxed">

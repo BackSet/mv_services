@@ -71,6 +71,18 @@ export const PRINT_BRAND_TEXT = {
   url: 'mvservices.app',
 } as const;
 
+/** Ruta pública del logo (Vite `public/brand/mv-services-logo.png`). */
+export function getBrandLogoPath(): string {
+  const base = import.meta.env.BASE_URL ?? '/';
+  return `${base}brand/mv-services-logo.png`.replace(/([^:]\/)\/+/g, '$1');
+}
+
+/** URL absoluta del logo (p. ej. ventanas `about:blank` o `fetch` en export). */
+export function getBrandLogoAbsoluteUrl(): string {
+  if (typeof window === 'undefined') return getBrandLogoPath();
+  return new URL(getBrandLogoPath(), window.location.origin).href;
+}
+
 // =============================================================================
 // Helpers compartidos por todos los exportadores / imprimibles
 // =============================================================================

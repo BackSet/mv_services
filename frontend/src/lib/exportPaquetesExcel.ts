@@ -4,6 +4,7 @@ import {
   BRAND_HEX,
   brandToARGB,
   formatPrintDate,
+  getBrandLogoAbsoluteUrl,
   PRINT_BRAND_TEXT,
 } from '@/lib/print/brandTokens';
 
@@ -152,7 +153,7 @@ const BORDER_GRAY: ExcelJS.Borders = {
 // Construcción de la hoja "Paquetes"
 // =============================================================================
 
-function buildPaquetesSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
+function buildPaquetesSheet(wb: ExcelJS.Workbook, paquetes: Paquete[], brandLogoId?: number) {
   const ws = wb.addWorksheet('Paquetes', {
     views: [{ state: 'frozen', xSplit: 1, ySplit: 4, activeCell: 'B5' }],
     properties: { defaultRowHeight: 16 },
@@ -176,8 +177,19 @@ function buildPaquetesSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
     ],
   };
   titleCell.fill = FILL_BLACK;
-  titleCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+  titleCell.alignment = {
+    vertical: 'middle',
+    horizontal: 'left',
+    indent: brandLogoId != null ? 4 : 1,
+  };
   ws.getRow(1).height = 30;
+
+  if (brandLogoId != null) {
+    ws.addImage(brandLogoId, {
+      tl: { col: 0.12, row: 0.08 },
+      ext: { width: 100, height: 34 },
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // Fila 2 — Banda naranja delgada (acento de marca)
@@ -338,14 +350,14 @@ function buildPaquetesSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
 // Hoja "Resumen"
 // =============================================================================
 
-function buildResumenSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
+function buildResumenSheet(wb: ExcelJS.Workbook, paquetes: Paquete[], brandLogoId?: number) {
   const r = calcResumen(paquetes);
   const ws = wb.addWorksheet('Resumen', {
     views: [{ showGridLines: false }],
   });
 
   ws.columns = [
-    { width: 6 },
+    { width: brandLogoId != null ? 14 : 6 },
     { width: 32 },
     { width: 22 },
     { width: 22 },
@@ -364,6 +376,13 @@ function buildResumenSheet(wb: ExcelJS.Workbook, paquetes: Paquete[]) {
   };
   titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
   ws.getRow(1).height = 30;
+
+  if (brandLogoId != null) {
+    ws.addImage(brandLogoId, {
+      tl: { col: 0.1, row: 0.08 },
+      ext: { width: 88, height: 30 },
+    });
+  }
 
   // --- Fila 2: banda naranja ---
   ws.mergeCells(2, 2, 2, 4);
@@ -469,8 +488,19 @@ export async function exportPaquetesExcel(
   wb.created = new Date();
   wb.modified = new Date();
 
-  buildResumenSheet(wb, paquetes);
-  buildPaquetesSheet(wb, paquetes);
+  let brandLogoId: number | undefined;
+  try {
+    const res = await fetch(getBrandLogoAbsoluteUrl());
+    if (res.ok) {
+      const buf = await res.arrayBuffer();
+      brandLogoId = wb.addImage({ buffer: buf, extension: 'png' });
+    }
+  } catch {
+    /* sin logo en Excel si falla la red o el recurso */
+  }
+
+  buildResumenSheet(wb, paquetes, brandLogoId);
+  buildPaquetesSheet(wb, paquetes, brandLogoId);
 
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], {

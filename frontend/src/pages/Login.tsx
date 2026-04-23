@@ -154,7 +154,7 @@ export default function Login() {
 
         <div className="relative z-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <BrandMark size={40} />
+            <BrandMark size={40} decorative />
             <Brand size="lg" className="text-white group-hover:opacity-90 transition-opacity" />
           </Link>
           <Link
@@ -206,7 +206,7 @@ export default function Login() {
         {/* Header móvil + theme */}
         <header className="flex items-center justify-between px-6 sm:px-10 lg:px-12 pt-6">
           <Link to="/" className="lg:hidden inline-flex items-center gap-2.5">
-            <BrandMark size={32} />
+            <BrandMark size={32} decorative />
             <Brand size="sm" />
           </Link>
           <div className="hidden lg:block" />

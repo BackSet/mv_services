@@ -5,6 +5,7 @@ import {
   BRAND_FONT_PRINT,
   PRINT_BRAND_TEXT,
   escapePrintHtml,
+  getBrandLogoAbsoluteUrl,
   nowPrintStamp,
 } from '@/lib/print/brandTokens';
 
@@ -127,6 +128,8 @@ async function buildHtml(
   const total = labels.length;
   const stamp = nowStamp();
   const isThermal = opts.mode === 'thermal';
+  const brandLogoAbs = getBrandLogoAbsoluteUrl();
+  const brandLogoSrcEsc = escapeHtml(brandLogoAbs);
 
   const dims = PAGE_DIMENSIONS_IN[opts.pageSize];
   const pageWIn = opts.orientation === 'landscape' ? dims.h : dims.w;
@@ -211,6 +214,17 @@ async function buildHtml(
         ? `<div class="qr-frame" aria-label="Código QR">${qr}</div>`
         : '';
 
+      const brandWordmark = `<div class="brand-text">
+                <span class="brand-mv">${escapeHtml(PRINT_BRAND_TEXT.wordmarkLeft)}</span><span class="brand-sv">${escapeHtml(PRINT_BRAND_TEXT.wordmarkRight)}</span>
+              </div>`;
+
+      const brandBarLeft = isThermal
+        ? brandWordmark
+        : `<div class="brand-bar-left">
+                <img class="brand-logo" src="${brandLogoSrcEsc}" alt="MV Services" width="72" height="36" decoding="async" />
+                ${brandWordmark}
+              </div>`;
+
       return `
         <div class="page">
           <div class="label">
@@ -222,9 +236,7 @@ async function buildHtml(
 
             <!-- Banda superior -->
             <header class="brand-bar">
-              <div class="brand-text">
-                <span class="brand-mv">${escapeHtml(PRINT_BRAND_TEXT.wordmarkLeft)}</span><span class="brand-sv">${escapeHtml(PRINT_BRAND_TEXT.wordmarkRight)}</span>
-              </div>
+              ${brandBarLeft}
               <div class="brand-meta">
                 ${counter}
                 <span class="brand-date">${escapeHtml(stamp)}</span>
@@ -408,6 +420,19 @@ async function buildHtml(
         border-radius: var(--r-sm);
         position: relative;
         overflow: hidden;
+      }
+      .brand-bar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .brand-logo {
+        height: 18px;
+        width: auto;
+        max-width: 72px;
+        object-fit: contain;
+        flex-shrink: 0;
       }
       ${
         isThermal

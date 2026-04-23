@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getBrandLogoPath } from "@/lib/print/brandTokens";
 
 type BrandSize = "sm" | "md" | "lg";
 
@@ -51,30 +52,32 @@ export function Brand({
 }
 
 /**
- * Marca compacta para sidebar colapsado o tab.
- * Cuadrado con "M" + punto naranja de acento.
+ * Marca compacta (logo PNG) para cabeceras, sidebar y auth.
  */
 export function BrandMark({
   size = 32,
   className,
+  decorative = false,
 }: {
   size?: number;
   className?: string;
+  /** Si true, la imagen es puramente decorativa (p. ej. junto al wordmark `Brand`). */
+  decorative?: boolean;
 }) {
   return (
-    <span
+    <img
+      src={getBrandLogoPath()}
+      alt={decorative ? "" : "MV Services"}
+      width={size}
+      height={size}
+      decoding="async"
+      draggable={false}
+      aria-hidden={decorative || undefined}
       className={cn(
-        "relative inline-flex flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-foreground to-foreground/85 font-serif font-normal text-background shadow-soft",
+        "inline-block flex-shrink-0 object-contain rounded-xl shadow-soft ring-1 ring-border/40 bg-card/80",
         className,
       )}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.5) }}
-      aria-hidden
-    >
-      M
-      <span
-        className="absolute -right-0.5 -top-0.5 rounded-full bg-accent ring-2 ring-background"
-        style={{ width: Math.max(8, size * 0.28), height: Math.max(8, size * 0.28) }}
-      />
-    </span>
+      style={{ width: size, height: size }}
+    />
   );
 }

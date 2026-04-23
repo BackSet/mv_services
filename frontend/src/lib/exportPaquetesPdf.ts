@@ -5,6 +5,7 @@ import {
   type RGB,
   formatPrintDate,
   formatPrintNumber,
+  getBrandLogoAbsoluteUrl,
   PRINT_BRAND_TEXT,
 } from '@/lib/print/brandTokens';
 
@@ -144,8 +145,24 @@ function calcResumen(paquetes: Paquete[]): Resumen {
 // Exportación principal
 // =============================================================================
 
-export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void {
+async function loadBrandLogoPng(): Promise<Uint8Array | null> {
+  try {
+    const res = await fetch(getBrandLogoAbsoluteUrl());
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+export async function exportPaquetesPdf(paquetes: Paquete[], filename?: string): Promise<void> {
   if (!paquetes.length) return;
+
+  const logoPng = await loadBrandLogoPng();
+  const logoWmm = 22;
+  const logoHmm = 8;
+  const logoGap = logoPng ? 3 : 0;
+  const wordmarkStartX = MARGIN_X + (logoPng ? logoWmm + logoGap : 0);
 
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const { cols, bounds, totalWidth } = getScaledCols();
@@ -164,20 +181,28 @@ export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void 
 
     const baseY = HEADER_BAND_H + 7;
 
-    // Wordmark "MVSERVICES" (sin logo cuadrado)
+    if (logoPng) {
+      try {
+        doc.addImage(logoPng, 'PNG', MARGIN_X, HEADER_BAND_H + 0.8, logoWmm, logoHmm);
+      } catch {
+        /* logo omitido si jsPDF no puede decodificarlo */
+      }
+    }
+
+    // Wordmark "MVSERVICES"
     setText(doc, BRAND.black);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text(PRINT_BRAND_TEXT.wordmarkLeft, MARGIN_X, baseY);
+    doc.text(PRINT_BRAND_TEXT.wordmarkLeft, wordmarkStartX, baseY);
     const mvW = doc.getTextWidth(PRINT_BRAND_TEXT.wordmarkLeft);
     setText(doc, BRAND.orange);
-    doc.text(PRINT_BRAND_TEXT.wordmarkRight, MARGIN_X + mvW, baseY);
+    doc.text(PRINT_BRAND_TEXT.wordmarkRight, wordmarkStartX + mvW, baseY);
 
     // Subtítulo
     setText(doc, BRAND.grayMid);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.text(PRINT_BRAND_TEXT.systemSubtitle, MARGIN_X, baseY + 4);
+    doc.text(PRINT_BRAND_TEXT.systemSubtitle, wordmarkStartX, baseY + 4);
 
     // Bloque derecho: título del reporte
     setText(doc, BRAND.grayDark);
@@ -298,6 +323,9 @@ export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void 
   // ---------------------------------------------------------------------------
   const drawFooter = (pageNum: number, totalPages?: number) => {
     const yFooter = PAGE_H - 7;
+    const footLogoH = 4.5;
+    const footLogoW = logoPng ? (footLogoH * logoWmm) / logoHmm : 0;
+    const footTextX = MARGIN_X + (logoPng ? footLogoW + 2 : 0);
 
     // Línea superior gris
     setDraw(doc, BRAND.grayBorder);
@@ -309,19 +337,27 @@ export function exportPaquetesPdf(paquetes: Paquete[], filename?: string): void 
     doc.setLineWidth(0.8);
     doc.line(MARGIN_X, yFooter - 4, MARGIN_X + 14, yFooter - 4);
 
+    if (logoPng) {
+      try {
+        doc.addImage(logoPng, 'PNG', MARGIN_X, yFooter - footLogoH - 0.3, footLogoW, footLogoH);
+      } catch {
+        /* omitir */
+      }
+    }
+
     // Marca textual
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     setText(doc, BRAND.black);
-    doc.text(PRINT_BRAND_TEXT.wordmarkLeft, MARGIN_X, yFooter);
+    doc.text(PRINT_BRAND_TEXT.wordmarkLeft, footTextX, yFooter);
     const mvW = doc.getTextWidth(PRINT_BRAND_TEXT.wordmarkLeft);
     setText(doc, BRAND.orange);
-    doc.text(PRINT_BRAND_TEXT.wordmarkRight, MARGIN_X + mvW, yFooter);
+    doc.text(PRINT_BRAND_TEXT.wordmarkRight, footTextX + mvW, yFooter);
     const svcW = doc.getTextWidth(PRINT_BRAND_TEXT.wordmarkRight);
 
     setText(doc, BRAND.grayMid);
     doc.setFont('helvetica', 'normal');
-    doc.text(`  •  Reporte de paquetes  •  ${PRINT_BRAND_TEXT.url}`, MARGIN_X + mvW + svcW, yFooter);
+    doc.text(`  •  Reporte de paquetes  •  ${PRINT_BRAND_TEXT.url}`, footTextX + mvW + svcW, yFooter);
 
     // Página
     setText(doc, BRAND.grayDark);

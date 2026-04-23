@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { useMe } from '@/hooks/useMe';
-import { Brand } from '@/components/brand';
+import { Brand, BrandMark } from '@/components/brand';
 import { useTheme } from '@/components/theme-provider';
 import { useDebounce } from '@/hooks/useDebounce';
 import { listPaquetes, type Paquete } from '@/services/paquetes.service';
@@ -209,14 +209,29 @@ const SidebarContent = ({
 }) => (
     <>
         {/* Workspace Logo */}
-        {!collapsed && (
+        {collapsed ? (
+            <div className="px-2 pt-3 pb-2 flex justify-center">
+                <Link
+                    to="/dashboard"
+                    className="rounded-xl p-1 hover:opacity-90 transition-opacity"
+                    title={shipperNombre || "MV Services"}
+                >
+                    <BrandMark size={28} decorative className="ring-sidebar-border bg-transparent" />
+                </Link>
+            </div>
+        ) : (
             <div className="px-4 pt-5 pb-3">
                 <Link
                     to="/dashboard"
                     className="flex items-center gap-3 rounded-xl px-1 py-1 hover:opacity-90 transition-opacity"
                     title={shipperNombre || "MV Services"}
                 >
-                    <div className="flex flex-col overflow-hidden leading-tight">
+                    <BrandMark
+                        size={shipperNombre ? 36 : 40}
+                        decorative
+                        className="ring-sidebar-border bg-transparent shrink-0"
+                    />
+                    <div className="flex flex-col overflow-hidden leading-tight min-w-0">
                         {shipperNombre ? (
                             <>
                                 <span className="font-serif text-base text-white truncate">
